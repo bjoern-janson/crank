@@ -1,0 +1,37 @@
+{
+  "certificate": "MINFIX_KF_v0.1",
+  "status": "PASS",
+  "witness": "k_F",
+  "grammar": "(G,B) from RLO v0.1.3",
+  "old_frame": {
+    "id": "F0",
+    "procedures": ["identity", "reverse", "sort_asc"]
+  },
+  "new_frame": {
+    "id": "F_even",
+    "added_primitive": "keep_even_values"
+  },
+  "old_space_results": {
+    "identity": false,
+    "reverse": false,
+    "sort_asc": false
+  },
+  "new_space_results": {
+    "keep_even_values": true
+  },
+  "memory_space_cardinality": 14761,
+  "memory_passing_candidates": 0,
+  "frame_hypothesis_cardinality": 3,
+  "frame_candidates": {
+    "F0": false,
+    "F_even": true,
+    "F_odd": false
+  },
+  "winning_locus": "F",
+  "winning_frame": "F_even",
+  "winning_frame_id": "b03ad4209a5129bf951e637cd78a2e4551f02c318e9527a3e655408920f825e4",
+  "frame_only_execution": true,
+  "A_mutation_credited": false,
+  "claim": "MinFix_(G,B)(k_F)=F",
+  "learner_execution_performed": false
+}

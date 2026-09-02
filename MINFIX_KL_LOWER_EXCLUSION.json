@@ -1,0 +1,27 @@
+{
+  "certificate": "MINFIX_KL_LOWER_EXCLUSION_v0.1",
+  "status": "PASS",
+  "witness": ["k_M", "k_F", "k_M", "k_F"],
+  "operator": "L0",
+  "dispatch": {
+    "k_M": "M",
+    "k_A": "M",
+    "k_F": "M",
+    "k_L": "M"
+  },
+  "bounded_update_budget": 1,
+  "witness_relative_memory_quotient": {
+    "relevant_keys": 3,
+    "state_count": 190,
+    "state_enumeration_digest": "5a36a7f7be34366967238a7800eeebfb114961f018697911fc9ba70d39d63ee1"
+  },
+  "dynamic_programming": {
+    "events": 4,
+    "valid_prefix_state_counts": [1, 0, 0, 0],
+    "valid_full_witness_state_count": 0
+  },
+  "result": "No lower-level M/A/F execution under frozen L0 produces contract-valid outputs for the complete four-event witness.",
+  "winning_lower_level_traces": 0,
+  "claim": "Forall h in H_(M,A,F)^(B,W_L), h does not model W_L^future_repair",
+  "learner_execution_performed": false
+}
