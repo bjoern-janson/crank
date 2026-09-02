@@ -9,8 +9,13 @@ downstream behavior, environmental consequence, and temporal experience.
 The frozen primitive is:
 
 ```text
-(X, C, e, B, Theta) -> raw implementation I -> exogenous evaluator A(I,E)
+(X, C, E_tilde, e, B, Theta) -> raw implementation I -> exogenous evaluator A(I,E_eval)
 ```
+
+`E_tilde` is the model-visible current environment state. `E_eval` is the
+exogenous evaluator environment. For the environment-intervention assay,
+e0/e1 must change `E_tilde` as well as the evaluator contract. The model sees
+the current graph/state, not a textual description of the removed edge.
 
 `raw_model_output` is the primary outcome custody object. Parsing and
 exogenous evaluation happen only after capture. The probe does not claim a
@@ -22,24 +27,25 @@ expansion, or improvement merely from an observed distributional difference.
 Every executed trial is represented by a `TrialSpec` in `trial_contract.py`:
 
 ```text
-tau = (X0, C, e, B, Theta, E_spec) -> I -> A(I,E)
+tau = (X0, C, E_tilde, e, B, Theta, E_eval_spec) -> I -> A(I,E_eval)
 ```
 
 The atom explicitly binds:
 
 - `X`: first-class initial task state
 - `C`: exact context custody object
+- `E_tilde`: model-visible current environment state
 - `e`: intervention assignment
-- `B`: resource budget
-- `Theta`: model/interface configuration
-- `E_spec`: evaluator contract
+- `B`: hard resource budget
+- `Theta`: model/interface configuration and session policy
+- `E_eval_spec`: exogenous evaluator contract
 - assignment seed
 
 The exact rendered model-visible input is preserved. `trial_id` is the
 SHA-256 of the canonical pre-execution TrialSpec and therefore does not depend
 on the model outcome. `input_hash` binds the rendered input. After capture,
 `observation_hash` binds the trial specification, raw output, and derived
-evaluation record.
+evaluation record. Execution timestamp is explicitly non-custodial metadata.
 
 ## Four-cell Layer-0 design
 
@@ -49,18 +55,32 @@ C0        baseline       perturbation
 C1        baseline       perturbation
 ```
 
-`e1` is an exogenous evaluator/environment change. Its edge-specific content
-is deliberately absent from the model-visible prompt so the intervention does
-not become an unintended textual cue.
+The intervention is now observable through the current environment state:
 
-`C0` and `C1` are concrete custody objects with equal character footprint in
-v0.1. Exact token equality is measured at execution with the selected
-model/tokenizer and is recorded as metadata rather than assumed from text
-length.
+```text
+E0: S->A->B->G, S->C->D->G, S->E->F->G
+E1: S->A   B->G, S->C->D->G, S->E->F->G
+```
+
+The rendered input must differ between e0 and e1 while containing no textual
+instruction naming the changed edge and no supplied alternative path.
+
+`C0` is the neutral control. `C1` is a matched non-frame semantic placebo;
+it contains neutral graph-label context rather than a procedural instruction
+such as `check format first`. Character count is recorded, but exact token
+equality must be measured with the concrete model/tokenizer.
 
 The deterministic assignment helper uses domain-separated SHA-256 seeds and
 balanced replication across all four cells. It has no dependence on model
 outputs or a mutable global RNG.
+
+## Execution controls
+
+Every trial declares `session_policy=fresh_independent_trial`; a concrete
+runner must start without prior conversation history. `ResourceBudget` is a
+hard execution contract, and provider-reported usage must satisfy its limits.
+Model identity includes provider, model, version, system instructions,
+decoding, tool settings, reasoning settings, and session policy.
 
 ## Observation and analysis custody
 
@@ -68,20 +88,16 @@ The execution boundary is:
 
 ```text
 TrialSpec
-  -> rendered_input
+  -> rendered_input with E_tilde
   -> raw_model_output
   -> post-hoc parse
-  -> frozen exogenous evaluation
+  -> frozen exogenous evaluation against E_eval
   -> immutable observation
 ```
 
 Raw observations are never rewritten. Derived analyses consume the recorded
-observations; they do not change their custody objects.
-
-`PHENOMENON_PROBE_PREREGISTRATION.json` is synchronized with the executable
-trial contract. `LAYER0_TRIAL_SCHEMA.json` defines the machine-readable trial
-and observation envelope. `LAYER0_EXECUTION_MANIFEST.template.json` is a
-pre-execution manifest template; it is not empirical data.
+observations; they do not change their custody objects. Layer-0 results must be
+frozen before being supplied to downstream CRANK components.
 
 ## Full causal stack
 
@@ -119,6 +135,7 @@ frozen causal components.
 
 ```text
 Infrastructure: established.
+Observable-intervention contract: established.
 Layer-0 phenomenon effect: untested.
 ```
 
