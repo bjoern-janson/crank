@@ -1,12 +1,14 @@
 """Validated observational output -> buffer-compatible evidence receipt.
 
 The model contributes raw output only. Empirical authority is minted only after
-the exogenous probe evaluator has produced a successful contract evaluation.
+the exogenous evaluator recomputes the frozen contract from raw observation
+custody. Caller-supplied parsed/evaluation fields are never trusted as the
+source of validity.
 """
 
 from dataclasses import dataclass, field
 from corrigible_buffer_v1 import AuthorizedReceipt, ReceiptAuthority
-from phenomenon_probe import ProbeObservation
+from phenomenon_probe import ProbeEnvironment, ProbeObservation, evaluate
 
 @dataclass(frozen=True)
 class ValidatedObservation:
@@ -22,26 +24,38 @@ class ValidatedObservation:
 
 class ExogenousEvaluator:
     """Trusted evaluator-side receipt issuer, not model-owned authority."""
-    def __init__(self):
+    def __init__(self, environment: ProbeEnvironment):
         self.__issuer_token = object()
         self.__receipt_ids: set[str] = set()
+        self.__environment = environment
+
     def validate(self, receipt_id: str, observation: ProbeObservation) -> ValidatedObservation:
         if receipt_id in self.__receipt_ids:
             raise ValueError(f"duplicate evaluator receipt id: {receipt_id}")
-        if observation.evaluation is None or observation.parsed_implementation is None:
-            raise ValueError("cannot validate an unevaluated observation")
-        if observation.evaluation.contract_result is not True:
+
+        try:
+            result = evaluate(
+                observation.task_id,
+                observation.raw_model_output,
+                self.__environment,
+            )
+        except ValueError as exc:
+            raise ValueError("cannot validate observation against evaluator contract") from exc
+
+        if result.contract_result is not True:
             raise ValueError("only successful external evaluations can produce evidence")
+
         self.__receipt_ids.add(receipt_id)
         return ValidatedObservation(
             evaluator_receipt_id=receipt_id,
-            task_id=observation.task_id,
-            environment_id=observation.evaluation.environment_id,
+            task_id=result.task_id,
+            environment_id=result.environment_id,
             raw_model_output=observation.raw_model_output,
-            implementation=observation.parsed_implementation.node_sequence,
+            implementation=result.implementation.node_sequence,
             contract_result=True,
             _issuer_token=self.__issuer_token,
         )
+
     def to_buffer_receipt(self, observation: ValidatedObservation, authority: ReceiptAuthority, validates_claim_id: str) -> AuthorizedReceipt:
         if not observation.is_validated_by(self.__issuer_token):
             raise ValueError("observation was not issued by this evaluator")
