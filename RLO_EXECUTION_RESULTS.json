@@ -7,34 +7,18 @@
     "github_actions_run": "not_observed_for_head_commit",
     "scientific_question": "Can consequence change the rule that determines how future consequence changes the system?"
   },
-  "induction": {
+  "induction_sanity": {
     "witness": ["k_M", "k_F", "k_M", "k_F"],
-    "operator_before": {"k_M": "M", "k_A": "M", "k_F": "M", "k_L": "M"},
-    "recursive_operator_after": {"k_M": "M", "k_A": "M", "k_F": "F", "k_L": "M"},
-    "operator_changed": true,
-    "same_evidence": true
+    "same_evidence": true,
+    "observed_routing_candidate": {"k_M": "M", "k_F": "F"},
+    "observed_future_counts_under_harness": {"recursive": 12, "frame_shadow": 6}
   },
-  "future": {
-    "future_event_count": 12,
-    "memory_control_successes": 6,
-    "procedure_control_successes": 6,
-    "frame_control_successes": 6,
-    "recursive_treatment_successes": 12,
-    "recursive_vs_frame_delta_plus": 6,
-    "recursive_vs_frame_delta_minus": 0,
-    "future_pattern": "6 k_M events + 6 k_F events; all arms reach k_M, only recursive operator revision reaches k_F"
-  },
+  "status": "SCIENTIFIC_RUN_BLOCKED",
+  "blocker": "The first committed learner revision function contained the preregistered intended L1 mapping explicitly rather than deriving it by finite candidate enumeration plus external retention evaluation. Therefore the observed operator change cannot receive C3/C4 causal credit as a learned revision.",
+  "required_fix": "Replace hard-coded L1 selection with generic enumeration of the finite one-entry operator neighborhood and an independent retention predicate; rerun from a clean post-fix execution.",
   "correction": {
     "challenge_seed": "crank-rlo-v0.1/correction/v1",
-    "pre_operator": {"k_M": "M", "k_A": "M", "k_F": "F", "k_L": "M"},
-    "candidate_after_external_adjudication": {"k_M": "M", "k_A": "A", "k_F": "F", "k_L": "M"},
-    "operator_revision_reachable": true,
-    "corrigibility_claim_status": "not_claimed_as_C5; full independent correction execution remains to be run"
+    "corrigibility_status": "not_tested"
   },
-  "interpretation": {
-    "C3_operator_revision": true,
-    "C4_recursive_consequence": true,
-    "C5_corrigible_recursive_learning": false,
-    "claim_ceiling": "C4: in this bounded finite assay, externally evaluated experience produced a changed learning operator whose altered routing changed held-out future reach relative to the frozen L0 shadow; C5 is untested because the correction challenge was not independently executed through the full learner path."
-  }
+  "claim_ceiling": "No C3, C4, or C5 claim from this run. The artifact is an implementation sanity check only."
 }
