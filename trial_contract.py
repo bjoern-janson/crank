@@ -11,9 +11,12 @@ the model without naming the changed edge or suggesting a solution.
 
 Identity rules:
     trial_id = H(canonical TrialSpec)
-    observation_hash = H(canonical TrialSpec + raw output + evaluation record)
+    observation_hash = H(canonical TrialSpec + raw output + evaluation record
+                         + measured execution usage)
 
 Execution timestamp is observational metadata, not part of observation identity.
+Actual execution usage is custody data and must pass the declared hard budget
+before an observation can be constructed.
 """
 
 from __future__ import annotations
@@ -153,7 +156,7 @@ class TrialSpec:
 
 @dataclass(frozen=True)
 class ExecutionUsage:
-    """Provider-reported usage for hard budget validation."""
+    """Provider-reported usage captured with and validated against a trial."""
     input_tokens: int
     output_tokens: int
     turns: int
@@ -163,7 +166,7 @@ class ExecutionUsage:
 
 @dataclass(frozen=True)
 class TrialObservation:
-    """Immutable observation with raw model output as primary custody object."""
+    """Immutable observation with raw output and measured execution custody."""
     trial_id: str
     model_identifier: str
     execution_timestamp: str
@@ -172,6 +175,7 @@ class TrialObservation:
     parsed_implementation: Optional[Tuple[str, ...]]
     contract_result: Optional[bool]
     evaluation_environment_id: Optional[str]
+    execution_usage: ExecutionUsage
     input_hash: str
     observation_hash: str
 
@@ -216,8 +220,10 @@ def make_observation(
     *,
     raw_model_output: str,
     execution_timestamp: str,
+    execution_usage: ExecutionUsage,
 ) -> TrialObservation:
-    """Capture raw output first, then derive parser/evaluator results."""
+    """Validate measured usage, then capture raw output and derive results."""
+    validate_execution_usage(spec, execution_usage)
     if spec.visible_environment.environment_id != spec.intervention.environment_id:
         raise ValueError("visible environment and intervention environment disagree")
     environment = ProbeEnvironment(spec.intervention.environment_id, spec.evaluator.environment_edges)
@@ -244,6 +250,7 @@ def make_observation(
         "trial_spec": spec.canonical_payload(),
         "raw_model_output": raw_model_output,
         "evaluation": evaluation_payload,
+        "execution_usage": _to_jsonable(execution_usage),
     }
 
     return TrialObservation(
@@ -255,6 +262,7 @@ def make_observation(
         parsed_implementation=(parsed.node_sequence if parsed is not None else None),
         contract_result=(result.contract_result if result is not None else None),
         evaluation_environment_id=(result.environment_id if result is not None else None),
+        execution_usage=execution_usage,
         input_hash=spec.input_hash(),
         observation_hash=sha256_hex(canonical_json(observation_payload)),
     )
