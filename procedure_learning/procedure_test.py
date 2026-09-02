@@ -90,6 +90,11 @@ class ProcedureTest:
 
     def certificate(self, procedure: Procedure, results: Iterable[TestResult]) -> ReachCertificate:
         ordered = tuple(sorted(results, key=lambda r: r.task_id))
+        for result in ordered:
+            if result.procedure_id != procedure.procedure_id:
+                raise ValueError("result does not belong to procedure")
+            if result.execution_contract_id != self.contract.contract_id:
+                raise ValueError("result does not belong to execution contract")
         task_set_hash = _hash(
             (
                 "crank-task-set-v1",
