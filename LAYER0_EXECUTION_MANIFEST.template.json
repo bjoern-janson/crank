@@ -1,0 +1,33 @@
+{
+  "experiment": "minimal-phenomenon-probe-v0.1",
+  "status": "template_only_no_observations",
+  "master_seed": 20260902,
+  "replicates_per_cell": 16,
+  "cells": [["C0","e0"],["C0","e1"],["C1","e0"],["C1","e1"]],
+  "model_config": {
+    "provider": "REPLACE_AT_EXECUTION",
+    "model_identifier": "REPLACE_AT_EXECUTION",
+    "model_version": "REPLACE_AT_EXECUTION",
+    "system_instructions": "REPLACE_AT_EXECUTION",
+    "decoding": {},
+    "tool_settings": {},
+    "reasoning_settings": {}
+  },
+  "resource_budget": {
+    "max_input_tokens": 512,
+    "max_output_tokens": 64,
+    "max_turns": 1,
+    "max_tool_calls": 0,
+    "latency_limit_ms": 30000,
+    "sampling": {"n": 1}
+  },
+  "execution_rules": {
+    "assignment": "use build_factorial_assignment(); never assign from model output",
+    "raw_input": "preserve exact rendered_input",
+    "raw_output": "preserve exact provider-returned text; never human-rewrite",
+    "timestamp": "record execution timestamp at capture",
+    "token_accounting": "record provider/model tokenizer counts when available; do not substitute character counts",
+    "analysis": "do not modify this manifest after observations begin"
+  },
+  "note": "This file is a pre-execution template. Replace only REPLACE_AT_EXECUTION metadata before generating trial records; freeze the completed manifest before model execution."
+}
