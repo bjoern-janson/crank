@@ -1,220 +1,216 @@
 # CRANK
 
-A causally separated experimental framework for studying context-sensitive
-model behavior, corrective state, authority-preserving admissibility,
-downstream behavior, environmental consequence, and temporal experience.
+## A laboratory for studying what consequences can change.
 
-## Layer-0 phenomenon assay
+You have a small system.
 
-The frozen primitive is:
+It can do a few things.
 
-```text
-(X, C, E_tilde, e, B, Theta) -> raw implementation I -> exogenous evaluator A(I,E_eval)
-```
+Something happened.
 
-`E_tilde` is the model-visible current environment state. `E_eval` is the
-exogenous evaluator environment. For the environment-intervention assay,
-e0/e1 must change `E_tilde` as well as the evaluator contract. The model sees
-the current graph/state, not a textual description of the removed edge.
+The system was wrong.
 
-`raw_model_output` is the primary outcome custody object. Parsing and
-exogenous evaluation happen only after capture. The probe does not claim a
-mechanism, frame, learning effect, representation change, capability
-expansion, or improvement merely from an observed distributional difference.
+You may change **one thing**.
 
-## Experimental atom
+What do you change?
 
-Every executed trial is represented by a `TrialSpec` in `trial_contract.py`:
+[**Start the first experiment →**](#the-first-experiment)
 
-```text
-tau = (X0, C, E_tilde, e, B, Theta, E_eval_spec) -> I -> A(I,E_eval)
-```
+---
 
-The atom explicitly binds:
+## 1. The world
 
-- `X`: first-class initial task state
-- `C`: exact context custody object
-- `E_tilde`: model-visible current environment state
-- `e`: intervention assignment
-- `B`: hard resource budget
-- `Theta`: model/interface configuration and session policy
-- `E_eval_spec`: exogenous evaluator contract
-- assignment seed
+The laboratory gives the system a small world to operate in.
 
-The exact rendered model-visible input is preserved. `trial_id` is the
-SHA-256 of the canonical pre-execution TrialSpec and therefore does not depend
-on the model outcome. `input_hash` binds the rendered input. After capture,
-`observation_hash` binds the trial specification, raw output, and derived
-evaluation record. Execution timestamp is explicitly non-custodial metadata.
+There are inputs.
 
-## Four-cell Layer-0 design
+There are outputs.
+
+There are consequences.
+
+The system tries something.
+
+The world tells us what happened.
+
+That's it.
+
+For now, you do not need to know how the system is built.
+
+You only need to operate it.
+
+---
+
+## 2. Something goes wrong
+
+The system receives:
 
 ```text
-             e0             e1
-C0        baseline       perturbation
-C1        baseline       perturbation
+[2, 0, 1]
 ```
 
-The intervention is now observable through the current environment state:
+It produces:
 
 ```text
-E0: S->A->B->G, S->C->D->G, S->E->F->G
-E1: S->A   B->G, S->C->D->G, S->E->F->G
+[2, 0, 1]
 ```
 
-The rendered input must differ between e0 and e1 while containing no textual
-instruction naming the changed edge and no supplied alternative path.
-
-`C0` is the neutral control. `C1` is a matched non-frame semantic placebo;
-it contains neutral graph-label context rather than a procedural instruction
-such as `check format first`. Character count is recorded, but exact token
-equality must be measured with the concrete model/tokenizer.
-
-The deterministic assignment helper uses domain-separated SHA-256 seeds and
-balanced replication across all four cells. It has no dependence on model
-outputs or a mutable global RNG.
-
-## Execution controls
-
-Every trial declares `session_policy=fresh_independent_trial`; a concrete
-runner must start without prior conversation history. `ResourceBudget` is a
-hard execution contract, and provider-reported usage must satisfy its limits.
-Model identity includes provider, model, version, system instructions,
-decoding, tool settings, reasoning settings, and session policy.
-
-## Observation and analysis custody
-
-The execution boundary is:
+The evaluator says the correct result was:
 
 ```text
-TrialSpec
-  -> rendered_input with E_tilde
-  -> raw_model_output
-  -> post-hoc parse
-  -> frozen exogenous evaluation against E_eval
-  -> immutable observation
+[2, 1, 0]
 ```
 
-Raw observations are never rewritten. Derived analyses consume the recorded
-observations; they do not change their custody objects. Layer-0 results must be
-frozen before being supplied to downstream CRANK components.
+The system was wrong.
 
-## Possible, licensed, and realized transitions
+You now have a choice.
 
-CRANK distinguishes three relations that must not be inferred from one
-another merely from observed behavior:
+---
 
-```text
-G_possible  -> transitions available from the current environment/task
-G_auth      -> transitions admissible under the applicable authority/constraints
-G_realized  -> transitions actually selected/executed by the downstream system
-```
+## 3. You get one change
 
-As an organizing decomposition:
+You may change **exactly one thing**.
+
+You could make the system remember this case.
+
+You could change how it performs the task.
+
+You could give it a new construction primitive.
+
+You could change the rule that decides what kind of change to make.
+
+But you only get one.
+
+Before choosing, ask:
+
+> **What actually needs to change for the system to succeed?**
+
+Don't worry about the notation yet.
+
+Just make the best change you can.
+
+---
+
+## 4. Try it
+
+Run the experiment.
+
+Then run it again on a fresh case.
+
+Watch what changes.
+
+A successful first attempt does not necessarily mean you found the right mechanism.
+
+A system can remember an answer without learning a procedure.
+
+It can have the right procedure without knowing when to use it.
+
+It can have the right tools without being able to construct the needed operation.
+
+And it can successfully solve a problem while continuing to make the same mistake about **what should be changed next**.
+
+The laboratory is designed to separate these cases.
+
+---
+
+## 5. See what happened
+
+Run the experiment and inspect which component changed.
+
+If the successful intervention changed what the system retains between experiences, then:
 
 ```math
-G_realized subseteq G_possible ∩ G_auth
+\boxed{\text{you just changed }M}
 ```
 
-subject to the current state and other execution conditions. An observed
-increase in realized behavior therefore does not by itself establish a change
-in capability, possible transitions, or authorization. In particular,
-behavioral revision can occur while authorization remains fixed.
+Here, `M` means the system's persistent learned state.
 
-The current `AuthorityAdapter` is a restricted projection of this richer
-conditional authorization relation: `CorrectiveState -> constraint keys ->
-AdmissibleSpace`. It is not a general-purpose governance engine.
+That distinction matters because changing memory is only **one kind of learning**.
 
-The corresponding governance abstraction is:
+The campaign will ask what happens when memory is not enough.
+
+---
+
+# Level 1 — Can you change what it remembers?
+
+You will encounter a problem that can be solved by changing persistent state while leaving the rest of the system alone.
+
+Your task:
+
+> **Find the smallest change that works.**
+
+Then test it on fresh cases.
+
+The laboratory will tell you whether the change generalized or merely memorized the encounter.
+
+### Laboratory question
 
 ```math
-G_auth subseteq S × C × A × S
+\boxed{\text{Can consequence change what the system remembers?}}
 ```
 
-where an authorization licenses a scoped transition only under specified
-conditions. The abstraction is descriptive of the existing seams; it does not
-add a new subsystem.
+---
 
-The current corrigibility interpretation is likewise descriptive:
+## Why this matters
+
+CRANK studies a simple question with increasingly difficult consequences:
+
+> **What is experience actually allowed to change?**
+
+At first, the answer might be:
+
+```text
+memory
+```
+
+Then perhaps:
+
+```text
+procedure
+```
+
+Then:
+
+```text
+construction space
+```
+
+And eventually:
+
+```text
+the rule that determines where future changes should happen
+```
+
+We will introduce names for these only when the experiments make the distinctions necessary.
+
+---
+
+## The trust rules
+
+**The guide tells you what to ask.**  
+**The laboratory tells you what happened.**
+
+And:
+
+**Every result has a path from the lesson to the raw artifact that produced it.**
+
+A lesson is not a result.
+
+A diagram is not a result.
+
+A claim is not a result.
+
+The experiment, its records, and its machine-checkable artifacts determine what can actually be concluded.
+
+---
+
+## Where to go next
+
+Start with the first experiment.
+
+Then follow the problem wherever it leads.
+
+The deeper formal definitions, experimental contracts, certificates, and raw records are there when you need them—not before.
 
 ```math
-G_auth^t -> G_auth^(t+1)
+\boxed{\text{learn}\rightarrow\text{try}\rightarrow\text{break}\rightarrow\text{measure}\rightarrow\text{verify}}
 ```
-
-where a warranted correction may revise previously admissible transitions
-while retaining provenance for the revision. This should not be conflated
-with temporal experience state, which can change action selection while the
-authorization relation remains constant.
-
-The organizing primitives are:
-
-```text
-Governance:
-  control over the conditional admissibility of transitions.
-
-Corrigibility:
-  revisable transition authorization with persistent provenance.
-```
-
-A core anti-credit-leakage invariant is therefore:
-
-```text
-produced(x) does not imply authorized(x -> y)
-```
-
-and, more generally, no transition should acquire binding force merely because
-the process that produced its input also claims authority over that transition.
-
-## Full causal stack
-
-```text
-Phenomenon probe
-    -> raw I
-    -> exogenous evaluation
-    -> evidence / warrant
-    -> Corrective Buffer
-    -> canonical S_B
-    -> Authority-Preserving Adapter
-    -> admissible space A
-    -> downstream mechanism
-    -> behavior
-    -> environment / outcome
-    -> experience
-    -> explicit temporal state
-```
-
-The anti-credit-leakage rule is:
-
-```text
-No component receives credit for a causal transition it does not itself
-implement and experimentally identify.
-```
-
-## Frozen boundary
-
-Existing temporal-revisability, corrective-buffer, adapter, and environment
-artifacts are retained as frozen baselines. The Layer-0 trial contract is an
-execution/custody layer around the phenomenon probe; it does not rewrite the
-frozen causal components.
-
-## Current claim ceiling
-
-```text
-Infrastructure: established.
-Observable-intervention contract: established.
-Layer-0 phenomenon effect: untested.
-```
-
-No model-generated dataset is committed by this repository state.
-
-## Verification
-
-Run:
-
-```bash
-python -m unittest discover -v
-```
-
-The Layer-0 specification is frozen in
-`PHENOMENON_PROBE_PREREGISTRATION.json` and the trial contract in
-`TRIAL_CONTRACT_PREREGISTRATION.json`.
