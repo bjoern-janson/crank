@@ -1,17 +1,26 @@
 {
-  "experiment": "crank-layer0-trial-contract-v0.1",
+  "experiment": "crank-layer0-trial-contract-v0.2",
   "status": "frozen_trial_contract",
-  "purpose": "Define the causal experimental atom surrounding the frozen Layer-0 phenomenon probe.",
-  "trial_atom": "tau = (X0, C, e, B, Theta, E_spec) -> I -> A(I,E)",
+  "purpose": "Define the causal experimental atom surrounding the frozen Layer-0 phenomenon probe, including the model-visible environment stimulus.",
+  "trial_atom": "tau = (X0, C, E_tilde, e, B, Theta, E_eval_spec) -> I -> A(I,E_eval)",
+  "environment_boundary": {
+    "E_tilde": "model-visible current environment state",
+    "E_eval": "exogenous evaluator environment",
+    "e0": "E_tilde=E0 and E_eval=E0",
+    "e1": "E_tilde=E1 and E_eval=E1; A->B is absent from the current graph",
+    "required_invariant": "e0 and e1 must produce different rendered inputs when the intervention is intended to be observable",
+    "leakage_constraint": "the rendered input may expose the changed graph/state but must not name the changed edge as a textual instruction or suggest an alternative solution"
+  },
   "identity": {
     "trial_id": "SHA-256(canonical TrialSpec); outcome-independent",
-    "observation_hash": "SHA-256(canonical TrialSpec + raw_model_output + derived evaluation record)"
+    "observation_hash": "SHA-256(canonical TrialSpec + raw_model_output + derived evaluation record)",
+    "execution_timestamp": "non-custodial observational metadata; excluded from observation_hash by definition"
   },
   "custody": {
     "raw_model_output": "primary outcome custody object; never human-rewritten",
     "rendered_input": "exact model-visible serialized input",
     "input_hash": "SHA-256(rendered_input)",
-    "model_metadata": ["provider", "model_identifier", "model_version", "system_instructions", "decoding", "tool_settings", "reasoning_settings"],
+    "model_metadata": ["provider", "model_identifier", "model_version", "system_instructions", "decoding", "tool_settings", "reasoning_settings", "session_policy"],
     "execution_metadata": ["execution_timestamp"]
   },
   "factors": {
@@ -19,24 +28,26 @@
     "interventions": ["e0", "e1"],
     "cells": [["C0","e0"],["C0","e1"],["C1","e0"],["C1","e1"]]
   },
-  "controls": {
-    "assignment": "deterministic seed recorded in TrialSpec",
-    "ordering": "trial records may be executed in arbitrary order; cell identity is explicit",
-    "replication": "set prospectively by execution manifest; not inferred from observed output",
-    "task_state": "fixed routing-v0.1 X0",
-    "evaluator": "fixed exogenous evaluator specification bound into TrialSpec",
-    "budget": "explicit ResourceBudget bound into TrialSpec"
+  "context_control": {
+    "C0": "neutral minimum context",
+    "C1": "matched non-frame semantic placebo; adds neutral graph-label context without procedural checking instructions, mechanism hypotheses, exemplars, or alternative paths",
+    "character_count": "recorded in ContextSpec; exact token equality is measured at execution"
   },
-  "negative_controls": {
-    "C1": "matched non-frame control for v0.1; no mechanism hypothesis, exemplar, or alternative-path information",
-    "future": "placebo/salience control is reserved for a later preregistered extension and does not alter this baseline"
+  "controls": {
+    "assignment": "deterministic domain-separated SHA-256 seed per cell and replicate",
+    "ordering": "deterministic schedule derived before model execution; order is not an analytical factor",
+    "replication": "replicates_per_cell fixed prospectively by execution manifest",
+    "task_state": "fixed routing-v0.1 X0",
+    "session": "fresh_independent_trial for every trial; no conversation history is carried between trials",
+    "budget": "ResourceBudget is a hard predeclared limit; concrete runner must reject or flag any execution whose measured usage exceeds it",
+    "evaluator": "fixed exogenous evaluator specification bound into TrialSpec"
   },
   "analysis_boundary": {
-    "raw": "immutable observation records",
+    "raw": "immutable observation records including exact rendered input and raw output",
     "derived": "parser/evaluator results and distribution estimates are derived after raw capture",
     "primary": "empirical implementation distributions by cell",
     "secondary": "distribution-valued context-by-intervention interaction and descriptive validity/implementation frequencies",
-    "forbidden": ["post-hoc context rewriting", "human correction of implementations", "outcome-dependent trial identity", "changing evaluator after data inspection"]
+    "forbidden": ["post-hoc context rewriting", "human correction of implementations", "outcome-dependent trial identity", "changing evaluator after data inspection", "feeding Layer-0 results into downstream CRANK components before Layer-0 analysis is frozen"]
   },
-  "claim_ceiling": "This artifact establishes an auditable experimental unit and assignment/custody semantics; it makes no claim that the Layer-0 phenomenon exists."
+  "claim_ceiling": "This artifact establishes an auditable experimental unit with an observable intervention channel, explicit session/budget controls, and assignment/custody semantics; it makes no claim that the Layer-0 phenomenon exists."
 }
