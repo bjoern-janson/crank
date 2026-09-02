@@ -80,6 +80,14 @@ class ProcedureTest:
             )
         return tuple(results)
 
+    def retain(self, results: Iterable[TestResult]) -> bool:
+        """Return true only when every declared prospective test passed."""
+        ordered = tuple(results)
+        return bool(ordered) and all(
+            result.passed and result.execution_contract_id == self.contract.contract_id
+            for result in ordered
+        )
+
     def certificate(self, procedure: Procedure, results: Iterable[TestResult]) -> ReachCertificate:
         ordered = tuple(sorted(results, key=lambda r: r.task_id))
         task_set_hash = _hash(
