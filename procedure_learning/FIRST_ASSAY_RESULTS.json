@@ -1,0 +1,75 @@
+{
+  "experiment": "crank-il-first-assay-v1",
+  "frame": {
+    "frame_id": "crank-il-first-assay-f0",
+    "allowed_primitives": ["identity", "reverse", "sort_asc"],
+    "max_program_length": 1,
+    "hypothesis_count": 4
+  },
+  "base": {
+    "program": ["reverse"],
+    "procedure_id": "2e409d829a9d00978efeb8d94078def293e69f877ed6528f738445598afd63b0"
+  },
+  "induction": {
+    "base_procedure_id": "2e409d829a9d00978efeb8d94078def293e69f877ed6528f738445598afd63b0",
+    "candidate_program": ["sort_asc"],
+    "candidate_procedure_id": "d649084e9a5094d4cfa9ab5b852b2d817399de547679c9d3c227ed946b16d268",
+    "tested_hypotheses": 3
+  },
+  "heldout_generation": {
+    "seed": "crank-il-first-assay-heldout-v1",
+    "generated_after_induction": true,
+    "independent_mechanism": true,
+    "count": 6
+  },
+  "heldout_tasks": [
+    {"task_id":"ee19fe0f4327bbd0","input":[68,63,82,32,73],"expected":[32,63,68,73,82]},
+    {"task_id":"7df9ec3e992788bc","input":[70,97,77,31,85],"expected":[31,70,77,85,97]},
+    {"task_id":"60ec7745b6ee494d","input":[12,30,89,85,80],"expected":[12,30,80,85,89]},
+    {"task_id":"a34754798999dfb2","input":[80,38,34,74,27],"expected":[27,34,38,74,80]},
+    {"task_id":"9cf624c583cb8111","input":[75,14,80,11,18],"expected":[11,14,18,75,80]},
+    {"task_id":"2dfb9b3fb97516a2","input":[94,26,30,49,63],"expected":[26,30,49,63,94]}
+  ],
+  "reach": {
+    "R0": [],
+    "R1": ["ee19fe0f4327bbd0","7df9ec3e992788bc","60ec7745b6ee494d","a34754798999dfb2","9cf624c583cb8111","2dfb9b3fb97516a2"],
+    "delta_R_plus": ["ee19fe0f4327bbd0","7df9ec3e992788bc","60ec7745b6ee494d","a34754798999dfb2","9cf624c583cb8111","2dfb9b3fb97516a2"],
+    "delta_R_minus": []
+  },
+  "identities": {
+    "execution_contract_id": "4198a3e3c3a8c7aa9720f693cfa2df87d16655f5d0c8e492af59adbef8a95e4c",
+    "task_set_hash": "8879a846807ee61ef055243c4e7b770eb7e6b44cb0a223b4bd990f60277b89cc",
+    "reach_certificate_id": "6e4111e8a0c69afd6f12b827c0ff1c58b1171999610e34b2b3317153dced47d1",
+    "shadow_procedure_id": "2e409d829a9d00978efeb8d94078def293e69f877ed6528f738445598afd63b0",
+    "treatment_procedure_id": "d649084e9a5094d4cfa9ab5b852b2d817399de547679c9d3c227ed946b16d268",
+    "shadow_trace_ids": [
+      "9fb768ef3f5e80a176167f6b7701f1fb46e735d0f2f1266f1f29e700d7c57398",
+      "829a3c2326e3a8df3a1964790cc0929c214cbc933911b7b725199cd8c528a3c9",
+      "dd94df3f610089af687269fca910d42f9eb66fe455704917e7a97dceb848e152",
+      "b8638f72254903d0d834e8d07cec190185290291edb8567ee2c5071be49b2813",
+      "fa9b3fbc95714c84107518fd3420a9bea0265f56cd30307b03f99e68babab0fe",
+      "16a804eca06c7733d904b2a21b78972454ade41493d4a605eb1ca04f7a89593b"
+    ],
+    "treatment_trace_ids": [
+      "8f29988f9f8a2f7ae4adb73e05b549fabd0861e16da73c9c9396465d834c1977",
+      "ea7a4bf5bf93119ff1c565915a58e95ef931d0e849de6aa69472a5e0a6b6ae14",
+      "0405fa490c07fb6360466682976942abd53e82a2c1333d6fd15351d40684a195",
+      "0321b88295ce77d3520485ece288f06f6f07b5ee1a18e1524dedd76fa530c655",
+      "ebf8cf593cd1b39450e90a148750987ea838402d6ae829e03a81f2d927f7de2c",
+      "b1d71a93ca9de89ab59ea8812ad2445c50a18ea0c943c9e9c6ed81fbdadf25a7"
+    ]
+  },
+  "old_space_exclusion": {
+    "kind": "singleton_frozen_shadow",
+    "old_space_procedure_ids": ["2e409d829a9d00978efeb8d94078def293e69f877ed6528f738445598afd63b0"],
+    "all_old_space_members_fail": true
+  },
+  "controls": {
+    "memorization_template_R": [],
+    "exhaustive_search_procedure_id": "d649084e9a5094d4cfa9ab5b852b2d817399de547679c9d3c227ed946b16d268",
+    "exhaustive_search_R": ["ee19fe0f4327bbd0","7df9ec3e992788bc","60ec7745b6ee494d","a34754798999dfb2","9cf624c583cb8111","2dfb9b3fb97516a2"]
+  },
+  "primary_success_criterion": "delta_R_plus_nonempty",
+  "observed_success": true,
+  "note": "The exhaustive-search comparator reproduces the same held-out procedure and reach. This does not weaken the causal shadow comparison, but it means the result is not unique to the particular inducer implementation."
+}
