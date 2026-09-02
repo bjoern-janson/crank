@@ -15,6 +15,7 @@ FRAME = FrameSpec(
 )
 SPACE = HypothesisSpace(FRAME)
 CONTRACT = ExecutionContract("toy-interface-v1", "theta-test", "budget-small")
+BASE = Procedure(())
 
 
 class FrameAndSpaceTests(unittest.TestCase):
@@ -47,21 +48,27 @@ class ProcedureIdentityTests(unittest.TestCase):
 
 
 class InductionTests(unittest.TestCase):
-    def test_exhaustive_induction_finds_exact_fit(self):
+    def test_exhaustive_induction_finds_exact_fit_and_binds_base(self):
         evidence = (
             TrainingExample("e1", (3, 1, 2), (1, 2, 3)),
             TrainingExample("e2", (5, 4), (4, 5)),
         )
-        result = ProcedureInducer(SPACE).induce(evidence)
+        result = ProcedureInducer(SPACE).induce(BASE, evidence)
+        self.assertEqual(result.base_procedure_id, BASE.procedure_id)
         self.assertIsNotNone(result.candidate)
         self.assertEqual(result.candidate.program, (Primitive.SORT_ASC,))
         self.assertLessEqual(result.tested_hypotheses, len(SPACE))
 
     def test_no_fit_is_explicit(self):
         evidence = (TrainingExample("e1", (1, 2), (9, 9)),)
-        result = ProcedureInducer(SPACE).induce(evidence)
+        result = ProcedureInducer(SPACE).induce(BASE, evidence)
         self.assertIsNone(result.candidate)
         self.assertEqual(result.tested_hypotheses, len(SPACE))
+
+    def test_base_must_belong_to_declared_space(self):
+        base = Procedure((Primitive.KEEP_EVEN,))
+        with self.assertRaises(ValueError):
+            ProcedureInducer(SPACE).induce(base, ())
 
 
 class ShadowTests(unittest.TestCase):
