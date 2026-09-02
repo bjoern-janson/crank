@@ -1,0 +1,39 @@
+{
+  "experiment": "crank-il-first-assay-v1",
+  "status": "prospective",
+  "frame": {
+    "frame_id": "crank-il-first-assay-f0",
+    "allowed_primitives": ["identity", "reverse", "sort_asc"],
+    "max_program_length": 1,
+    "hypothesis_count": 4
+  },
+  "base_procedure": ["reverse"],
+  "curriculum": [
+    {"id": "h1", "input": [3, 1, 2], "expected": [1, 2, 3]},
+    {"id": "h2", "input": [8, 5, 7], "expected": [5, 7, 8]}
+  ],
+  "treatment": "A1 = Induce(A0, H)",
+  "control": "frozen same-evidence shadow A0[H]",
+  "same_evidence_invariant": ["H", "Theta", "B", "T*", "E_eval"],
+  "theta_id": "theta-frozen-v1",
+  "budget_id": "budget-small-v1",
+  "heldout_generation": {
+    "seed": "crank-il-first-assay-heldout-v1",
+    "count": 6,
+    "generated_only_after_induction": true,
+    "independent_of_inducer": true,
+    "input_length": 5,
+    "value_range": [10, 99],
+    "rejected_conditions": ["duplicate values", "reverse output equals ascending output"]
+  },
+  "primary_success": "delta_R_plus_nonempty",
+  "secondary_observations": [
+    "A1 differs from A0 by canonical procedure identity",
+    "treatment and shadow retain separate trace identities",
+    "delta_R_minus is recorded",
+    "old-space exclusion is exhaustive over the singleton frozen shadow",
+    "memorization/template control has no exact-match route to held-out inputs",
+    "existing exhaustive-search comparator is recorded but is not the causal treatment"
+  ],
+  "claim_ceiling": "The assay may establish a causal procedural difference and held-out reach difference under the declared finite DSL; it does not by itself establish algorithm learning, general intelligence, or intrinsic capability."
+}
