@@ -139,7 +139,6 @@ class TrialSpec:
                     "target": self.task.target_node,
                 },
                 "current_environment": {
-                    "environment_id": self.visible_environment.environment_id,
                     "edges": [list(edge) for edge in self.visible_environment.edges],
                 },
             },
@@ -219,8 +218,6 @@ def make_observation(
     execution_timestamp: str,
 ) -> TrialObservation:
     """Capture raw output first, then derive parser/evaluator results."""
-    # The evaluator remains a separate exogenous object even though its
-    # environment must agree with the model-visible environment for this assay.
     if spec.visible_environment.environment_id != spec.intervention.environment_id:
         raise ValueError("visible environment and intervention environment disagree")
     environment = ProbeEnvironment(spec.intervention.environment_id, spec.evaluator.environment_edges)
@@ -293,7 +290,7 @@ def make_default_evaluator(intervention_id: str) -> EvaluatorSpec:
     return EvaluatorSpec(
         evaluator_id="routing-exogenous-path-evaluator",
         version="0.1",
-        objective="Route the token from S to G.",
+        objective="Route the token from S to G using the current environment.",
         equivalence_rule="node sequences exactly identical",
         parser_schema={"implementation": "array of node strings only"},
         environment_edges=environment.edges,
