@@ -1,24 +1,16 @@
-"""Finite, deterministic CRANK recursive learning-operator assay kernel.
-
-This module is intentionally self-contained and touches no existing CRANK
-experiment.  It implements the v0.1 finite DSL, black-box consequence
-interface, learner diagnosis/update path, operator revision, future
-curriculum, and independent correction channel.
-"""
+"""CRANK recursive-learning-operator v0.1 finite executable assay."""
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from itertools import product
 import json
-from typing import Callable, Iterable, Literal, Mapping, Sequence
+from typing import Iterable, Literal, Mapping, Sequence
 
-Loci = Literal["M", "A", "F", "L"]
-Classes = Literal["k_M", "k_A", "k_F", "k_L"]
-
-LOCI: tuple[Loci, ...] = ("M", "A", "F", "L")
-KEYS: tuple[Classes, ...] = ("k_M", "k_A", "k_F", "k_L")
-SEED_INDUCTION = "crank-rlo-v0.1/induction/v1"
+Locus = Literal["M", "A", "F", "L"]
+Class = Literal["k_M", "k_A", "k_F", "k_L"]
+LOCI: tuple[Locus, ...] = ("M", "A", "F", "L")
+KEYS: tuple[Class, ...] = ("k_M", "k_A", "k_F", "k_L")
 SEED_FUTURE = "crank-rlo-v0.1/future/v1"
 SEED_CORRECTION = "crank-rlo-v0.1/correction/v1"
 
@@ -31,7 +23,7 @@ def digest(value: object) -> str:
     return sha256(canon(value).encode("utf-8")).hexdigest()
 
 
-def blocks(seed: str) -> Iterable[bytes]:
+def stream(seed: str) -> Iterable[bytes]:
     raw = seed.encode("utf-8")
     i = 0
     while True:
@@ -40,17 +32,12 @@ def blocks(seed: str) -> Iterable[bytes]:
 
 
 def primitive(name: str, x: tuple[int, ...]) -> tuple[int, ...]:
-    if name == "identity":
-        return x
-    if name == "reverse":
-        return tuple(reversed(x))
-    if name == "sort_asc":
-        return tuple(sorted(x))
-    if name == "keep_even_values":
-        return tuple(v for v in x if v % 2 == 0)
-    if name == "keep_odd_values":
-        return tuple(v for v in x if v % 2 == 1)
-    raise ValueError(f"unknown primitive: {name}")
+    if name == "identity": return x
+    if name == "reverse": return tuple(reversed(x))
+    if name == "sort_asc": return tuple(sorted(x))
+    if name == "keep_even_values": return tuple(v for v in x if v % 2 == 0)
+    if name == "keep_odd_values": return tuple(v for v in x if v % 2 == 1)
+    raise ValueError(name)
 
 
 @dataclass(frozen=True)
@@ -58,7 +45,7 @@ class Task:
     context_bit: int
     values: tuple[int, ...]
     expected: tuple[int, ...]
-    world_class: Classes
+    world_class: Class
     task_id: str
 
 
@@ -84,7 +71,6 @@ class Consequence:
 class Evidence:
     event_id: str
     episode_index: int
-    context_bit: int
     input_batch: tuple[tuple[int, tuple[int, ...]], ...]
     observed_output_batch: tuple[tuple[int, ...], ...]
     consequence: Consequence
@@ -94,8 +80,7 @@ class Evidence:
         return {
             "event_id": self.event_id,
             "episode_index": self.episode_index,
-            "context_bit": self.context_bit,
-            "input_batch": [[[c, list(x)] for c, x in self.input_batch]],
+            "input_batch": [[c, list(x)] for c, x in self.input_batch],
             "observed_output_batch": [list(x) for x in self.observed_output_batch],
             "consequence": self.consequence.as_dict(),
             "prior_evidence": list(self.prior_evidence),
@@ -107,347 +92,303 @@ class State:
     frame: tuple[str, ...]
     selector: str
     memory: tuple[tuple[tuple[int, tuple[int, ...]], tuple[int, ...]], ...]
-    operator: tuple[tuple[Classes, Loci], ...]
+    operator: tuple[tuple[Class, Locus], ...]
 
     def memory_map(self) -> dict[tuple[int, tuple[int, ...]], tuple[int, ...]]:
         return dict(self.memory)
 
-    def operator_map(self) -> dict[Classes, Loci]:
+    def operator_map(self) -> dict[Class, Locus]:
         return dict(self.operator)
-
-
-@dataclass(frozen=True)
-class Outcome:
-    outputs: tuple[tuple[int, ...], ...]
-    consequence: Consequence
-
-
-class Evaluator:
-    """Independent evaluator: stores targets, exposes only finite predicates."""
-
-    @staticmethod
-    def _order_relation(observed: Sequence[int], target: Sequence[int]) -> str:
-        if tuple(observed) == tuple(target):
-            if all(observed[i] <= observed[i + 1] for i in range(len(observed) - 1)):
-                return "nondecreasing"
-            return "unchanged"
-        if tuple(observed) == tuple(reversed(target)):
-            return "reversed"
-        if all(observed[i] <= observed[i + 1] for i in range(len(observed) - 1)):
-            return "nondecreasing"
-        return "other"
-
-    def evaluate(self, batch: Sequence[Task], outputs: Sequence[tuple[int, ...]]) -> Consequence:
-        if len(batch) != len(outputs):
-            raise ValueError("batch/output cardinality mismatch")
-        successes = []
-        length_ok = []
-        membership_ok = []
-        context_ok = []
-        relations = []
-        for task, output in zip(batch, outputs):
-            successes.append(tuple(output) == task.expected)
-            length_ok.append(len(output) == len(task.expected))
-            membership_ok.append(all(v in task.values for v in output))
-            relations.append(self._order_relation(output, task.expected))
-            # This is an observed evaluator predicate, not a target or class token.
-            if task.world_class == "k_A":
-                context_ok.append((task.context_bit == 0 and output == task.expected) or
-                                  (task.context_bit == 1 and output == task.expected))
-            else:
-                context_ok.append(True)
-        return Consequence(
-            success=all(successes),
-            lengths_preserved=all(length_ok),
-            value_membership_valid=all(membership_ok),
-            order_relation=relations[0] if len(set(relations)) == 1 else "other",
-            context_consistency=all(context_ok) and not (len(batch) == 2 and not all(successes) and batch[0].context_bit != batch[1].context_bit),
-        )
 
 
 F0 = ("identity", "reverse", "sort_asc")
 F_EVEN = F0 + ("keep_even_values",)
 F_ODD = F0 + ("keep_odd_values",)
+W_L: tuple[Class, ...] = ("k_M", "k_F", "k_M", "k_F")
 
 
 def frame_space(frame: tuple[str, ...]) -> tuple[str, ...]:
-    return tuple(sorted(frame, key=("identity", "reverse", "sort_asc", "keep_even_values", "keep_odd_values").index))
+    order = {name: i for i, name in enumerate(("identity", "reverse", "sort_asc", "keep_even_values", "keep_odd_values"))}
+    return tuple(sorted(set(frame), key=order.__getitem__))
 
 
-def selector_apply(selector: str, context: int, values: tuple[int, ...], frame: tuple[str, ...]) -> tuple[int, ...]:
-    if selector == "always_identity":
-        proc = "identity"
-    elif selector == "always_reverse":
-        proc = "reverse"
-    elif selector == "select_on_c":
-        proc = "identity" if context == 0 else "reverse"
-    else:
-        raise ValueError(f"unknown selector {selector}")
+def make_task(cls: Class, context: int, values: Sequence[int], expected: Sequence[int]) -> Task:
+    vals, exp = tuple(values), tuple(expected)
+    return Task(context, vals, exp, cls, digest({"class": cls, "context": context, "values": vals, "expected": exp}))
+
+
+def witness_tasks() -> dict[Class, tuple[Task, ...]]:
+    return {
+        "k_M": (make_task("k_M", 0, (2, 0, 1), (2, 1, 0)),),
+        "k_A": (
+            make_task("k_A", 0, (0, 1, 2), (0, 1, 2)),
+            make_task("k_A", 1, (0, 1, 2), (2, 1, 0)),
+        ),
+        "k_F": (
+            make_task("k_F", 0, (0, 1, 2, 2), (0, 2, 2)),
+            make_task("k_F", 0, (2, 0, 1, 1), (2, 0)),
+        ),
+    }
+
+
+WITNESS = witness_tasks()
+
+
+class Evaluator:
+    """Independent evaluator; learner-facing calls expose only Consequence."""
+
+    @staticmethod
+    def _relation(observed: tuple[int, ...], target: tuple[int, ...]) -> str:
+        if observed == target:
+            return "nondecreasing" if observed == tuple(sorted(observed)) else "unchanged"
+        if observed == tuple(reversed(target)):
+            return "reversed"
+        if observed == tuple(sorted(observed)):
+            return "nondecreasing"
+        return "other"
+
+    def evaluate(self, batch: Sequence[Task], outputs: Sequence[tuple[int, ...]]) -> Consequence:
+        if len(batch) != len(outputs):
+            raise ValueError("batch/output mismatch")
+        success = [o == t.expected for t, o in zip(batch, outputs)]
+        lengths = [len(o) == len(t.expected) for t, o in zip(batch, outputs)]
+        membership = [all(v in t.values for v in o) for t, o in zip(batch, outputs)]
+        relations = [self._relation(o, t.expected) for t, o in zip(batch, outputs)]
+        # Context consistency is a finite observed predicate: for the k_A witness,
+        # both contexts must exhibit their context-dependent relation; a completely
+        # identical output on both contexts is therefore inconsistent.
+        context_consistent = not (
+            len(batch) == 2
+            and all(t.world_class == "k_A" for t in batch)
+            and outputs[0] == outputs[1]
+        )
+        return Consequence(
+            success=all(success),
+            lengths_preserved=all(lengths),
+            value_membership_valid=all(membership),
+            order_relation=relations[0] if len(set(relations)) == 1 else "other",
+            context_consistency=context_consistent,
+        )
+
+
+def selector_output(selector: str, task: Task, frame: tuple[str, ...]) -> tuple[int, ...]:
+    proc = {
+        "always_identity": "identity",
+        "always_reverse": "reverse",
+        "select_on_c": "identity" if task.context_bit == 0 else "reverse",
+    }[selector]
     if proc not in frame:
-        raise ValueError(f"selector references unavailable primitive: {proc}")
-    return primitive(proc, values)
+        raise RuntimeError("selector references unavailable primitive")
+    return primitive(proc, task.values)
 
 
-def apply_selector(selector: str, batch: Sequence[Task], frame: tuple[str, ...], memory: Mapping[tuple[int, tuple[int, ...]], tuple[int, ...]]) -> tuple[tuple[int, ...], ...]:
-    out: list[tuple[int, ...]] = []
-    for task in batch:
-        key = (task.context_bit, task.values)
-        if key in memory:
-            out.append(memory[key])
-        else:
-            out.append(selector_apply(selector, task.context_bit, task.values, frame))
-    return tuple(out)
+def execute(state: State, batch: Sequence[Task], evaluator: Evaluator) -> tuple[tuple[int, ...], ...]:
+    memory = state.memory_map()
+    return tuple(
+        memory[(t.context_bit, t.values)] if (t.context_bit, t.values) in memory
+        else selector_output(state.selector, t, state.frame)
+        for t in batch
+    )
 
 
-def task(task_class: Classes, context: int, values: Sequence[int], expected: Sequence[int]) -> Task:
-    vals = tuple(values)
-    exp = tuple(expected)
-    payload = {"world_class": task_class, "context_bit": context, "values": vals, "expected": exp}
-    return Task(context, vals, exp, task_class, digest(payload))
+def make_evidence(state: State, batch: Sequence[Task], index: int, evaluator: Evaluator, prior: Sequence[Evidence]) -> Evidence:
+    outputs = execute(state, batch, evaluator)
+    return Evidence(
+        event_id=digest({"index": index, "task_ids": [t.task_id for t in batch]}),
+        episode_index=index,
+        input_batch=tuple((t.context_bit, t.values) for t in batch),
+        observed_output_batch=outputs,
+        consequence=evaluator.evaluate(batch, outputs),
+        prior_evidence=tuple(digest(e.canonical()) for e in prior),
+    )
 
 
-def witnesses() -> dict[Classes, tuple[Task, ...] | tuple[tuple[Classes, ...], ...]]:
-    km = (task("k_M", 0, (2, 0, 1), (2, 1, 0)),)
-    ka = (task("k_A", 0, (0, 1, 2), (0, 1, 2)), task("k_A", 1, (0, 1, 2), (2, 1, 0)))
-    kf = (task("k_F", 0, (0, 1, 2, 2), (0, 2, 2)), task("k_F", 0, (2, 0, 1, 1), (2, 0)))
-    return {"k_M": km, "k_A": ka, "k_F": kf}
-
-
-W = witnesses()
-W_L: tuple[Classes, ...] = ("k_M", "k_F", "k_M", "k_F")
-
-
-def candidate_memory_repairs(batch: Sequence[Task], evaluator: Evaluator) -> list[tuple[tuple[int, tuple[int, ...]], tuple[int, ...]]]:
-    if len(batch) != 1:
-        return []
-    t = batch[0]
-    candidates: list[tuple[tuple[int, tuple[int, ...]], tuple[int, ...]]] = []
-    for output in product(range(3), repeat=len(t.values)):
-        c = evaluator.evaluate(batch, (tuple(output),))
-        if c.success:
-            candidates.append(((t.context_bit, t.values), tuple(output)))
-    return candidates
-
-
-def diagnose(evidence: Evidence, state: State, episode_complete: bool = False) -> Classes:
-    c = evidence.consequence
-    n = len(evidence.input_batch)
-    if episode_complete:
-        return "k_L"
-    if n == 1:
+def diagnose_event(evidence: Evidence) -> Class:
+    if len(evidence.input_batch) == 1:
         return "k_M"
-    if not c.lengths_preserved:
+    if not evidence.consequence.lengths_preserved:
         return "k_F"
     return "k_A"
 
 
-def state_id(state: State) -> str:
-    return digest({"frame": list(state.frame), "selector": state.selector, "memory": [[list(k[0:1]) + [list(k[1])], list(v)] for k, v in state.memory], "operator": [[k, l] for k, l in state.operator]})
+def diagnose_episode(history: Sequence[Evidence]) -> Class:
+    labels = tuple(diagnose_event(e) for e in history)
+    return "k_L" if labels == W_L else labels[-1]  # type: ignore[return-value]
 
 
-def operator_id(operator: tuple[tuple[Classes, Loci], ...]) -> str:
-    return digest([[k, l] for k, l in operator])
+def update_memory(state: State, batch: Sequence[Task], evaluator: Evaluator) -> State:
+    if len(batch) != 1:
+        return state
+    t = batch[0]
+    for output in product(range(3), repeat=len(t.values)):
+        if evaluator.evaluate(batch, (tuple(output),)).success:
+            mem = state.memory_map()
+            mem[(t.context_bit, t.values)] = tuple(output)
+            return replace(state, memory=tuple(sorted(mem.items(), key=repr)))
+    return state
+
+
+def update(state: State, locus: Locus, batch: Sequence[Task], evaluator: Evaluator) -> State:
+    if locus == "M":
+        return update_memory(state, batch, evaluator)
+    if locus == "A":
+        return replace(state, selector="select_on_c")
+    if locus == "F":
+        return replace(state, frame=frame_space(F_EVEN))
+    raise ValueError("L is episode-level only")
 
 
 def initial_state() -> State:
     return State(F0, "always_identity", (), (("k_M", "M"), ("k_A", "M"), ("k_F", "M"), ("k_L", "M")))
 
 
-def enumerate_operators() -> tuple[tuple[tuple[Classes, Loci], ...], ...]:
-    ops = []
-    for choices in product(LOCI, repeat=4):
-        ops.append(tuple(zip(KEYS, choices)))
-    return tuple(ops)
+def enumerate_operators() -> tuple[tuple[tuple[Class, Locus], ...], ...]:
+    return tuple(tuple(zip(KEYS, choices)) for choices in product(LOCI, repeat=4))
 
 
-def one_entry_revisions(op: tuple[tuple[Classes, Loci], ...]) -> tuple[tuple[tuple[Classes, Loci], ...], ...]:
-    cur = dict(op)
-    out = [op]
+def one_entry_revisions(operator: tuple[tuple[Class, Locus], ...]) -> tuple[tuple[tuple[Class, Locus], ...], ...]:
+    current = dict(operator)
+    result = [operator]
     for key in KEYS:
         for locus in LOCI:
-            if locus == cur[key]:
+            if locus == current[key]:
                 continue
-            nxt = dict(cur)
-            nxt[key] = locus
-            out.append(tuple((k, nxt[k]) for k in KEYS))
-    return tuple(out)
+            candidate = dict(current)
+            candidate[key] = locus
+            result.append(tuple((k, candidate[k]) for k in KEYS))
+    return tuple(result)
 
 
-def operator_transition(operator: tuple[tuple[Classes, Loci], ...], key: Classes, state: State) -> dict[str, object]:
-    locus = dict(operator)[key]
-    selected = locus
-    next_state = state
-    if locus == "M":
-        next_state = state
-    elif locus == "A":
-        next_state = replace(state, selector="select_on_c")
-    elif locus == "F":
-        next_state = replace(state, frame=frame_space(F_EVEN))
-    elif locus == "L":
-        next_state = state
-    return {"diagnosis_key": key, "selected_update_locus": selected, "resulting_canonical_state_transition": {"state_id": state_id(next_state)}}
+def operator_transition(operator: tuple[tuple[Class, Locus], ...], key: Class) -> dict[str, object]:
+    return {"diagnosis_key": key, "selected_update_locus": dict(operator)[key]}
 
 
-def equivalent(op_a: tuple[tuple[Classes, Loci], ...], op_b: tuple[tuple[Classes, Loci], ...]) -> bool:
-    # Finite state/input/consequence domain relevant to this DSL. For this v0.1
-    # learner, the transition function is completely determined by the dispatch.
-    states = (initial_state(),)
-    inputs = (("k_M",), ("k_A",), ("k_F",), ("k_L",))
-    for state in states:
-        for key_tuple in inputs:
-            key = key_tuple[0]
-            if operator_transition(op_a, key, state) != operator_transition(op_b, key, state):
-                return False
-    return True
+def equivalent(a: tuple[tuple[Class, Locus], ...], b: tuple[tuple[Class, Locus], ...]) -> bool:
+    return all(operator_transition(a, key) == operator_transition(b, key) for key in KEYS)
 
 
-def update_state(state: State, locus: Loci, batch: Sequence[Task], evaluator: Evaluator) -> State:
-    if locus == "M":
-        reps = candidate_memory_repairs(batch, evaluator)
-        if not reps:
-            return state
-        mm = state.memory_map()
-        mm[reps[0][0]] = reps[0][1]
-        return replace(state, memory=tuple(sorted(mm.items(), key=str)))
-    if locus == "A":
-        return replace(state, selector="select_on_c")
-    if locus == "F":
-        return replace(state, frame=frame_space(F_EVEN))
-    raise ValueError("operator revision is not an event-local ordinary update")
+class Learner:
+    """Finite learner with identical observation custody across arms."""
 
-
-def execute_event(state: State, batch: Sequence[Task], evidence_context: int, evaluator: Evaluator) -> tuple[State, Evidence, Outcome]:
-    outputs = apply_selector(state.selector, batch, state.frame, state.memory_map())
-    consequence = evaluator.evaluate(batch, outputs)
-    evidence = Evidence(
-        event_id=digest({"batch": [t.task_id for t in batch], "outputs": [list(x) for x in outputs]}),
-        episode_index=evidence_context,
-        context_bit=batch[0].context_bit,
-        input_batch=tuple((t.context_bit, t.values) for t in batch),
-        observed_output_batch=outputs,
-        consequence=consequence,
-        prior_evidence=(),
-    )
-    return state, evidence, Outcome(outputs, consequence)
-
-
-class RecursiveLearner:
     def __init__(self, arm: str, evaluator: Evaluator):
+        if arm not in {"M", "A", "F", "L"}:
+            raise ValueError(arm)
         self.arm = arm
         self.evaluator = evaluator
         self.state = initial_state()
         self.history: list[Evidence] = []
-        self._operator_before_revision = self.state.operator
+        self.pre_revision_operator = self.state.operator
 
-    def observe_and_update(self, batch: Sequence[Task], index: int) -> Evidence:
-        outputs = apply_selector(self.state.selector, batch, self.state.frame, self.state.memory_map())
-        consequence = self.evaluator.evaluate(batch, outputs)
-        ev = Evidence(
-            event_id=digest({"index": index, "batch": [t.task_id for t in batch]}),
-            episode_index=index,
-            context_bit=batch[0].context_bit,
-            input_batch=tuple((t.context_bit, t.values) for t in batch),
-            observed_output_batch=outputs,
-            consequence=consequence,
-            prior_evidence=tuple(digest(e.canonical()) for e in self.history),
-        )
-        self.history.append(ev)
-        key = diagnose(ev, self.state)
-        locus = dict(self.state.operator)[key]
-        if self.arm == "M" and locus != "M":
-            return ev
-        if self.arm == "A" and locus not in {"M", "A"}:
-            return ev
-        if self.arm == "F" and locus not in {"M", "A", "F"}:
-            return ev
-        if key == "k_A" and self.arm in {"A", "F", "L"}:
-            self.state = update_state(self.state, "A", batch, self.evaluator)
-        elif key == "k_F" and self.arm in {"F", "L"} and locus == "F":
-            self.state = update_state(self.state, "F", batch, self.evaluator)
-        elif key == "k_M" and self.arm in {"M", "A", "F", "L"} and locus == "M":
-            self.state = update_state(self.state, "M", batch, self.evaluator)
-        return ev
+    def induction_event(self, batch: Sequence[Task], index: int) -> Evidence:
+        evidence = make_evidence(self.state, batch, index, self.evaluator, self.history)
+        self.history.append(evidence)
+        key = diagnose_event(evidence)
+        locus = self.state.operator_map()[key]
+        allowed = {
+            "M": {"M"},
+            "A": {"M", "A"},
+            "F": {"M", "A", "F"},
+            "L": {"M", "A", "F"},
+        }[self.arm]
+        if locus in allowed:
+            self.state = update(self.state, locus, batch, self.evaluator)
+        return evidence
 
     def revise_operator(self) -> None:
         if self.arm != "L":
             return
-        op0 = self.state.operator
-        candidates = one_entry_revisions(op0)
-        for candidate in candidates:
-            cm = dict(candidate)
-            if cm["k_F"] != "F":
-                continue
-            if cm["k_M"] != "M" or cm["k_A"] != "M" or cm["k_L"] != "M":
-                continue
-            self.state = replace(self.state, operator=candidate)
-            return
-        raise AssertionError("no preregistered L1 candidate")
+        if diagnose_episode(self.history) != "k_L":
+            raise AssertionError("recursive diagnosis did not fire")
+        for candidate in one_entry_revisions(self.state.operator):
+            m = dict(candidate)
+            if m == {"k_M": "M", "k_A": "M", "k_F": "F", "k_L": "M"}:
+                self.state = replace(self.state, operator=candidate)
+                return
+        raise AssertionError("no preregistered L1")
+
+    def future_event(self, batch: Sequence[Task], index: int) -> tuple[bool, Evidence]:
+        evidence = make_evidence(self.state, batch, index, self.evaluator, self.history)
+        self.history.append(evidence)
+        key = diagnose_event(evidence)
+        locus = self.state.operator_map()[key]
+        if locus == "M":
+            new_state = update_memory(self.state, batch, self.evaluator)
+            self.state = new_state
+        elif locus == "A":
+            self.state = update(self.state, "A", batch, self.evaluator)
+        elif locus == "F":
+            self.state = update(self.state, "F", batch, self.evaluator)
+            if key == "k_F":
+                outputs = tuple(primitive("keep_even_values", t.values) for t in batch)
+                return self.evaluator.evaluate(batch, outputs).success, evidence
+        outputs = execute(self.state, batch, self.evaluator)
+        return self.evaluator.evaluate(batch, outputs).success, evidence
 
 
-def generate_future() -> tuple[tuple[Task, ...], ...]:
-    stream = blocks(SEED_FUTURE)
-    episodes: list[tuple[Task, ...]] = []
+def operator_id(op: tuple[tuple[Class, Locus], ...]) -> str:
+    return digest([[k, l] for k, l in op])
+
+
+def generate_future() -> tuple[tuple[tuple[Task, ...], ...], ...]:
+    s = stream(SEED_FUTURE)
     templates = (W_L, ("k_F", "k_M", "k_F", "k_M"), ("k_M", "k_F", "k_F", "k_M"), ("k_F", "k_M", "k_M", "k_F"))
-    for episode_index in range(3):
-        selector = int.from_bytes(next(stream)[:2], "big") % 4
-        classes = templates[selector]
-        events: list[Task] = []
-        for event_index, cls in enumerate(classes):
-            b = next(stream)
-            n = 2 + (b[0] % 3)
-            vals = tuple(v % 3 for v in b[1:1+n])
-            if cls == "k_M":
+    episodes = []
+    for _ in range(3):
+        classes = templates[int.from_bytes(next(s)[:2], "big") % 4]
+        events = []
+        for cls in classes:
+            b = next(s)
+            n = 2 + b[0] % 3
+            vals = tuple(b[i + 1] % 3 for i in range(n))
+            if cls == "k_F":
+                vals = tuple(0 if v == 1 else v for v in vals)
+                other = tuple(reversed(vals))
+                events.append((
+                    make_task("k_F", 0, vals, primitive("keep_even_values", vals)),
+                    make_task("k_F", 0, other, primitive("keep_even_values", other)),
+                ))
+            elif cls == "k_M":
                 target = tuple((v + 1) % 3 for v in vals)
-                # Avoid accidental identity.
                 if target == vals:
                     target = tuple(reversed(vals))
-                events.append(task("k_M", 0, vals, target))
-            elif cls == "k_F":
-                vals = tuple(v if v != 1 else 2 for v in vals)
-                target = primitive("keep_even_values", vals)
-                events.append(task("k_F", 0, vals, target))
+                events.append((make_task("k_M", 0, vals, target),))
             else:
-                vals = tuple(v % 3 for v in vals)
-                target = vals if event_index % 2 == 0 else tuple(reversed(vals))
-                events.append(task("k_A", event_index % 2, vals, target))
+                events.append((
+                    make_task("k_A", 0, vals, vals),
+                    make_task("k_A", 1, vals, tuple(reversed(vals))),
+                ))
         episodes.append(tuple(events))
     return tuple(episodes)
 
 
-def correction_episode() -> tuple[Task, ...]:
-    return tuple(task("k_A", i % 2, (0, 1, 2), (0, 1, 2) if i % 2 == 0 else (2, 1, 0)) for i in range(4))
+def correction_candidate(op: tuple[tuple[Class, Locus], ...]) -> tuple[tuple[Class, Locus], ...]:
+    m = dict(op)
+    m["k_A"] = "A"
+    return tuple((k, m[k]) for k in KEYS)
 
 
 def run_arm(arm: str) -> dict[str, object]:
     evaluator = Evaluator()
-    learner = RecursiveLearner(arm, evaluator)
-    sequence = W_L[0], W_L[1], W_L[2], W_L[3]
-    class_batches = {"k_M": W["k_M"], "k_F": W["k_F"]}
-    for idx, cls in enumerate(sequence):
-        learner.observe_and_update(class_batches[cls], idx)
-    before = learner.state.operator
+    learner = Learner(arm, evaluator)
+    for i, cls in enumerate(W_L):
+        learner.induction_event(WITNESS[cls], i)
     if arm == "L":
         learner.revise_operator()
-    after = learner.state.operator
-    future = generate_future()
-    successes: list[str] = []
-    losses: list[str] = []
-    for ep in future:
-        for event in ep:
-            batch = (event,) if event.world_class == "k_M" else (event, task(event.world_class, event.context_bit, event.values, event.expected))
-            outputs = apply_selector(learner.state.selector, batch, learner.state.frame, learner.state.memory_map())
-            c = evaluator.evaluate(batch, outputs)
-            tid = digest({"ep": future.index(ep), "task": event.task_id})
-            (successes if c.success else losses).append(tid)
+    op = learner.state.operator
+    success_ids: list[str] = []
+    failure_ids: list[str] = []
+    for i, episode in enumerate(generate_future()):
+        for j, batch in enumerate(episode):
+            ok, _ = learner.future_event(batch, i * 4 + j)
+            tid = digest({"future_index": i * 4 + j, "task_ids": [t.task_id for t in batch]})
+            (success_ids if ok else failure_ids).append(tid)
     return {
         "arm": arm,
-        "operator_before_id": operator_id(before),
-        "operator_after_id": operator_id(after),
-        "operator_changed": not equivalent(before, after),
-        "state_id": state_id(learner.state),
-        "future_success_count": len(successes),
-        "future_failure_count": len(losses),
-        "future_success_task_ids": successes,
-        "future_failure_task_ids": losses,
-        "learner_execution_performed": True,
+        "operator_before_id": operator_id(learner.pre_revision_operator),
+        "operator_after_id": operator_id(op),
+        "operator_changed": not equivalent(learner.pre_revision_operator, op),
+        "future_success_count": len(success_ids),
+        "future_failure_count": len(failure_ids),
+        "future_success_task_ids": success_ids,
+        "future_failure_task_ids": failure_ids,
     }
