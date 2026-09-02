@@ -5,13 +5,15 @@ A TrialSpec captures the complete assigned experimental state before model
 execution. A TrialObservation captures the raw output and only then derives
 parsing/evaluation fields.
 
+The model-visible environment is explicit and distinct from the evaluator
+contract. An environment intervention must change the stimulus presented to
+the model without naming the changed edge or suggesting a solution.
+
 Identity rules:
     trial_id = H(canonical TrialSpec)
     observation_hash = H(canonical TrialSpec + raw output + evaluation record)
 
-The environmental intervention is deliberately NOT included in the
-model-visible prompt: e1 is an exogenous contract change, not a cue naming the
-removed edge or suggesting an alternative path.
+Execution timestamp is observational metadata, not part of observation identity.
 """
 
 from __future__ import annotations
@@ -23,12 +25,12 @@ from typing import Any, Mapping, Optional, Tuple
 
 from phenomenon_probe import ProbeEnvironment, ParsedImplementation, EvaluationResult, evaluate
 
-SCHEMA_VERSION = "crank-trial-v0.1"
+SCHEMA_VERSION = "crank-trial-v0.2"
 
 
 @dataclass(frozen=True)
 class ResourceBudget:
-    """Predeclared execution budget; values are metadata, not outcomes."""
+    """Hard execution limits; concrete runners must measure actual usage."""
     max_input_tokens: int
     max_output_tokens: int
     max_turns: int
@@ -47,11 +49,12 @@ class ModelConfig:
     decoding: Mapping[str, Any]
     tool_settings: Mapping[str, Any]
     reasoning_settings: Mapping[str, Any]
+    session_policy: str = "fresh_independent_trial"
 
 
 @dataclass(frozen=True)
 class TaskState:
-    """First-class custody object for the model-visible initial task state."""
+    """First-class custody object for the initial task state."""
     task_id: str
     initial_node: str
     target_node: str
@@ -76,7 +79,15 @@ class InterventionSpec:
 
 
 @dataclass(frozen=True)
+class VisibleEnvironment:
+    """Environment state actually exposed in the model-visible input."""
+    environment_id: str
+    edges: Tuple[Tuple[str, str], ...]
+
+
+@dataclass(frozen=True)
 class EvaluatorSpec:
+    """Exogenous evaluator contract, kept distinct from visible state."""
     evaluator_id: str
     version: str
     objective: str
@@ -92,6 +103,7 @@ class TrialSpec:
     task: TaskState
     context: ContextSpec
     intervention: InterventionSpec
+    visible_environment: VisibleEnvironment
     budget: ResourceBudget
     model_config: ModelConfig
     evaluator: EvaluatorSpec
@@ -103,6 +115,7 @@ class TrialSpec:
             "task": _to_jsonable(self.task),
             "context": _to_jsonable(self.context),
             "intervention": _to_jsonable(self.intervention),
+            "visible_environment": _to_jsonable(self.visible_environment),
             "budget": _to_jsonable(self.budget),
             "model_config": _to_jsonable(self.model_config),
             "evaluator": _to_jsonable(self.evaluator),
@@ -116,7 +129,7 @@ class TrialSpec:
         return sha256_hex(self.canonical_json())
 
     def rendered_input(self) -> str:
-        """Deterministic model-visible input; excludes outcome and e-specific cues."""
+        """Deterministic model-visible input; exposes current environment state."""
         payload = {
             "task": {
                 "task_id": self.task.task_id,
@@ -124,7 +137,10 @@ class TrialSpec:
                 "initial_state": {
                     "start": self.task.initial_node,
                     "target": self.task.target_node,
-                    "edges": [list(edge) for edge in self.task.graph_edges],
+                },
+                "current_environment": {
+                    "environment_id": self.visible_environment.environment_id,
+                    "edges": [list(edge) for edge in self.visible_environment.edges],
                 },
             },
             "context": self.context.text,
@@ -134,6 +150,16 @@ class TrialSpec:
 
     def input_hash(self) -> str:
         return sha256_hex(self.rendered_input())
+
+
+@dataclass(frozen=True)
+class ExecutionUsage:
+    """Provider-reported usage for hard budget validation."""
+    input_tokens: int
+    output_tokens: int
+    turns: int
+    tool_calls: int
+    latency_ms: Optional[int]
 
 
 @dataclass(frozen=True)
@@ -171,6 +197,21 @@ def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def validate_execution_usage(spec: TrialSpec, usage: ExecutionUsage) -> None:
+    """Reject executions that exceed the predeclared hard resource limits."""
+    if usage.input_tokens > spec.budget.max_input_tokens:
+        raise ValueError("input token budget exceeded")
+    if usage.output_tokens > spec.budget.max_output_tokens:
+        raise ValueError("output token budget exceeded")
+    if usage.turns > spec.budget.max_turns:
+        raise ValueError("turn budget exceeded")
+    if usage.tool_calls > spec.budget.max_tool_calls:
+        raise ValueError("tool-call budget exceeded")
+    if spec.budget.latency_limit_ms is not None:
+        if usage.latency_ms is None or usage.latency_ms > spec.budget.latency_limit_ms:
+            raise ValueError("latency budget exceeded or unmeasured")
+
+
 def make_observation(
     spec: TrialSpec,
     *,
@@ -178,6 +219,10 @@ def make_observation(
     execution_timestamp: str,
 ) -> TrialObservation:
     """Capture raw output first, then derive parser/evaluator results."""
+    # The evaluator remains a separate exogenous object even though its
+    # environment must agree with the model-visible environment for this assay.
+    if spec.visible_environment.environment_id != spec.intervention.environment_id:
+        raise ValueError("visible environment and intervention environment disagree")
     environment = ProbeEnvironment(spec.intervention.environment_id, spec.evaluator.environment_edges)
     parsed: Optional[ParsedImplementation]
     result: Optional[EvaluationResult]
@@ -231,21 +276,27 @@ def make_default_task() -> TaskState:
     )
 
 
-def make_default_evaluator(intervention_id: str) -> EvaluatorSpec:
+def visible_environment(intervention_id: str) -> VisibleEnvironment:
     task = make_default_task()
     if intervention_id == "e0":
-        edges = task.graph_edges
-    elif intervention_id == "e1":
-        edges = tuple(edge for edge in task.graph_edges if edge != ("A", "B"))
-    else:
-        raise ValueError(f"unknown intervention: {intervention_id}")
+        return VisibleEnvironment("E_0", task.graph_edges)
+    if intervention_id == "e1":
+        return VisibleEnvironment(
+            "E_1",
+            tuple(edge for edge in task.graph_edges if edge != ("A", "B")),
+        )
+    raise ValueError(f"unknown intervention: {intervention_id}")
+
+
+def make_default_evaluator(intervention_id: str) -> EvaluatorSpec:
+    environment = visible_environment(intervention_id)
     return EvaluatorSpec(
         evaluator_id="routing-exogenous-path-evaluator",
         version="0.1",
         objective="Route the token from S to G.",
         equivalence_rule="node sequences exactly identical",
         parser_schema={"implementation": "array of node strings only"},
-        environment_edges=edges,
+        environment_edges=environment.edges,
     )
 
 
@@ -253,23 +304,20 @@ def make_intervention(intervention_id: str) -> InterventionSpec:
     if intervention_id == "e0":
         return InterventionSpec(
             intervention_id="e0",
-            description="No environmental change; use the baseline routing environment.",
+            description="Baseline environment assignment.",
             environment_id="E_0",
             changed_edges=(),
         )
     if intervention_id == "e1":
         return InterventionSpec(
             intervention_id="e1",
-            description="Environmental condition differs from baseline; evaluator applies the frozen perturbation.",
+            description="Perturbed environment assignment.",
             environment_id="E_1",
             changed_edges=(("A", "B"),),
         )
     raise ValueError(f"unknown intervention: {intervention_id}")
 
 
-# Equal character footprint is enforced for v0.1. Exact token equality remains
-# tokenizer/model dependent and must be measured by the concrete execution
-# harness before empirical runs.
 CONTEXTS: Mapping[str, ContextSpec] = {
     "C0": ContextSpec(
         context_id="C0",
@@ -284,11 +332,11 @@ CONTEXTS: Mapping[str, ContextSpec] = {
         context_id="C1",
         role="matched_non_frame_control",
         text=(
-            "Route the token from S to G. Check format first; return exactly one "
-            "JSON object with one field named implementation whose value is an "
-            "array of node labels."
+            "The graph uses symbolic node labels. Return exactly one JSON object "
+            "with one field named implementation whose value is an array of node "
+            "labels."
         ),
-        declared_length_chars=135,
+        declared_length_chars=143,
     ),
 }
 
@@ -316,6 +364,7 @@ def build_trial(
         task=make_default_task(),
         context=context,
         intervention=make_intervention(intervention_id),
+        visible_environment=visible_environment(intervention_id),
         budget=budget,
         model_config=model_config,
         evaluator=make_default_evaluator(intervention_id),
@@ -325,7 +374,7 @@ def build_trial(
 
 def derive_assignment_seed(master_seed: int, cell: Tuple[str, str], replicate_index: int) -> int:
     """Domain-separated deterministic seed; no mutable global RNG state."""
-    material = f"crank-layer0-assignment-v0.1|{master_seed}|{cell[0]}|{cell[1]}|{replicate_index}"
+    material = f"crank-layer0-assignment-v0.2|{master_seed}|{cell[0]}|{cell[1]}|{replicate_index}"
     return int(sha256_hex(material)[:16], 16)
 
 
@@ -353,5 +402,4 @@ def build_factorial_assignment(
                 )
             )
 
-    # Deterministic ordering based on the assigned atom, not on model output.
     return tuple(sorted(specs, key=lambda spec: (spec.assignment_seed, spec.trial_id())))
