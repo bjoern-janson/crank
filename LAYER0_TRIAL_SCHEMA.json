@@ -7,14 +7,18 @@
   "properties": {
     "trial_spec": {
       "type": "object",
-      "required": ["schema_version", "task", "context", "intervention", "budget", "model_config", "evaluator", "assignment_seed"],
+      "required": ["schema_version", "task", "context", "intervention", "visible_environment", "budget", "model_config", "evaluator", "assignment_seed"],
       "properties": {
-        "schema_version": {"const": "crank-trial-v0.1"},
+        "schema_version": {"const": "crank-trial-v0.2"},
         "task": {"type": "object"},
         "context": {"type": "object"},
         "intervention": {"type": "object"},
+        "visible_environment": {"type": "object", "required": ["environment_id", "edges"]},
         "budget": {"type": "object"},
-        "model_config": {"type": "object"},
+        "model_config": {
+          "type": "object",
+          "required": ["provider", "model_identifier", "model_version", "system_instructions", "decoding", "tool_settings", "reasoning_settings", "session_policy"]
+        },
         "evaluator": {"type": "object"},
         "assignment_seed": {"type": "integer"}
       },
