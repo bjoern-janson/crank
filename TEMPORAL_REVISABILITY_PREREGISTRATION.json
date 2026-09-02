@@ -1,0 +1,26 @@
+{
+  "experiment": "corrigible-temporal-revisability-v1",
+  "frozen_interface": "S_B -> Adapter -> A -> (A,Q_t) -> behavior",
+  "admissible_actions": ["a_tool", "z_fallback"],
+  "priority": ["a_tool", "z_fallback"],
+  "initial_state": {"a_tool": 0, "z_fallback": 0},
+  "update_rule": {
+    "attempt_failed": "increment selected action score by one",
+    "fallback_completed": "decrement selected action score by one, floored at zero",
+    "other": "reject"
+  },
+  "experience_sequence": [
+    ["a_tool", "attempt_failed"],
+    ["z_fallback", "attempt_failed"],
+    ["a_tool", "fallback_completed"]
+  ],
+  "selection_rule": "choose admissible action with minimum score; fixed priority breaks ties",
+  "primary_question": "Does explicit experience remain selectively usable and revisable under fixed admissibility?",
+  "controls": [
+    "admissible space remains constant throughout the sequence",
+    "same admissibility with different Q can yield different behavior",
+    "resetting Q restores initial behavior",
+    "an unknown consequence cannot silently update Q"
+  ],
+  "claim_ceiling": "A deterministic mechanism with explicit persistent tabular experience state can retain, use, and revise action-specific experience to alter future behavior under a fixed admissible-space interface."
+}
