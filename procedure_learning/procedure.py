@@ -27,7 +27,7 @@ def _sha256(value: Any) -> str:
 class Procedure:
     """Executable program represented only by primitive operations.
 
-    This object defines execution semantics.  Membership in a particular
+    This object defines execution semantics. Membership in a particular
     frame/hypothesis space is deliberately checked elsewhere.
     """
 
@@ -85,14 +85,15 @@ def _apply(primitive: Primitive, value: tuple) -> tuple:
 
 
 def execute(procedure: Procedure, input_value: Iterable[int]) -> ExecutionTrace:
-    current = tuple(int(x) for x in input_value)
+    original = tuple(int(x) for x in input_value)
+    current = original
     steps = []
     for primitive in procedure.program:
         current = _apply(primitive, current)
         steps.append((primitive.value, current))
     return ExecutionTrace(
         procedure_id=procedure.procedure_id,
-        input_value=tuple(int(x) for x in input_value),
+        input_value=original,
         steps=tuple(steps),
         output_value=current,
     )
