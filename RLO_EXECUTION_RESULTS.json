@@ -1,0 +1,40 @@
+{
+  "manifest": "CRANK_RLO_EXECUTION_v0.1",
+  "execution_provenance": {
+    "implementation_branch": "recursive-learning-operator-v0.1",
+    "pre_execution_gate": "PASS",
+    "learner_execution_method": "local_execution_of_committed_kernel_semantics",
+    "github_actions_run": "not_observed_for_head_commit",
+    "scientific_question": "Can consequence change the rule that determines how future consequence changes the system?"
+  },
+  "induction": {
+    "witness": ["k_M", "k_F", "k_M", "k_F"],
+    "operator_before": {"k_M": "M", "k_A": "M", "k_F": "M", "k_L": "M"},
+    "recursive_operator_after": {"k_M": "M", "k_A": "M", "k_F": "F", "k_L": "M"},
+    "operator_changed": true,
+    "same_evidence": true
+  },
+  "future": {
+    "future_event_count": 12,
+    "memory_control_successes": 6,
+    "procedure_control_successes": 6,
+    "frame_control_successes": 6,
+    "recursive_treatment_successes": 12,
+    "recursive_vs_frame_delta_plus": 6,
+    "recursive_vs_frame_delta_minus": 0,
+    "future_pattern": "6 k_M events + 6 k_F events; all arms reach k_M, only recursive operator revision reaches k_F"
+  },
+  "correction": {
+    "challenge_seed": "crank-rlo-v0.1/correction/v1",
+    "pre_operator": {"k_M": "M", "k_A": "M", "k_F": "F", "k_L": "M"},
+    "candidate_after_external_adjudication": {"k_M": "M", "k_A": "A", "k_F": "F", "k_L": "M"},
+    "operator_revision_reachable": true,
+    "corrigibility_claim_status": "not_claimed_as_C5; full independent correction execution remains to be run"
+  },
+  "interpretation": {
+    "C3_operator_revision": true,
+    "C4_recursive_consequence": true,
+    "C5_corrigible_recursive_learning": false,
+    "claim_ceiling": "C4: in this bounded finite assay, externally evaluated experience produced a changed learning operator whose altered routing changed held-out future reach relative to the frozen L0 shadow; C5 is untested because the correction challenge was not independently executed through the full learner path."
+  }
+}
