@@ -1,0 +1,26 @@
+{
+  "manifest": "CRANK_RLO_CANONICALIZATION_v0.1",
+  "serialization": {
+    "format": "JSON",
+    "encoding": "UTF-8",
+    "ensure_ascii": false,
+    "sort_keys": true,
+    "separators": [",", ":"]
+  },
+  "digest": "SHA-256 over canonical UTF-8 bytes, lowercase hexadecimal",
+  "identity_fields": [
+    "operator_id",
+    "frame_id",
+    "procedure_id",
+    "trace_id",
+    "task_id",
+    "state_id"
+  ],
+  "operator_transition_fields": [
+    "diagnosis_key",
+    "selected_update_locus",
+    "resulting_canonical_state_transition"
+  ],
+  "equivalence": "Two operators are equivalent iff canonical complete transitions agree for every element of the finite declared operator domain.",
+  "witness_memory_quotient": "Memory states are restricted to the three TaskInput keys occurring in W_L; all non-witness keys map to canonical bottom state ⊥. The quotient is exact for W_L because non-witness keys cannot be queried by a witness event."
+}
