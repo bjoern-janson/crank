@@ -21,6 +21,7 @@ class TrainingExample:
 
 @dataclass(frozen=True)
 class InductionResult:
+    base_procedure_id: str
     candidate: Optional[Procedure]
     evidence: Tuple[TrainingExample, ...]
     tested_hypotheses: int
@@ -37,7 +38,9 @@ class ProcedureInducer:
 
     hypothesis_space: HypothesisSpace
 
-    def induce(self, evidence: Iterable[TrainingExample]) -> InductionResult:
+    def induce(self, base_procedure: Procedure, evidence: Iterable[TrainingExample]) -> InductionResult:
+        if not self.hypothesis_space.contains(base_procedure):
+            raise ValueError("base_procedure is outside the declared hypothesis space")
         examples = tuple(evidence)
         tested = 0
         for candidate in self.hypothesis_space.enumerate():
@@ -46,5 +49,5 @@ class ProcedureInducer:
                 execute(candidate, example.input_value).output_value == example.expected_output
                 for example in examples
             ):
-                return InductionResult(candidate, examples, tested)
-        return InductionResult(None, examples, tested)
+                return InductionResult(base_procedure.procedure_id, candidate, examples, tested)
+        return InductionResult(base_procedure.procedure_id, None, examples, tested)
