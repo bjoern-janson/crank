@@ -1,0 +1,29 @@
+{
+  "certificate": "MINFIX_KA_v0.1",
+  "status": "PASS",
+  "witness": "k_A",
+  "grammar": "(G,B) from RLO v0.1.3",
+  "hypothesis_space": "H_A",
+  "cardinality": 3,
+  "enumeration_order": [
+    "always_identity",
+    "always_reverse",
+    "select_on_c"
+  ],
+  "candidate_results": {
+    "always_identity": false,
+    "always_reverse": false,
+    "select_on_c": true
+  },
+  "winning_locus": "A",
+  "winning_candidate": "select_on_c",
+  "winning_candidate_id": "81385a19f3adc29580cc3cf8f8153886e7c6da8371414765c58461e6b800d8bc",
+  "memory_exclusion": {
+    "space": "H_M",
+    "cardinality": 14761,
+    "passing_candidates": 0,
+    "reason": "one-entry exact override cannot satisfy both context-conditioned subtasks"
+  },
+  "claim": "MinFix_(G,B)(k_A)=A",
+  "learner_execution_performed": false
+}
