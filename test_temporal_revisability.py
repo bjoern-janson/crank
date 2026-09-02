@@ -10,6 +10,7 @@ PREREG='TEMPORAL_REVISABILITY_PREREGISTRATION.json'
 SNAP='FROZEN_TEMPORAL_ADAPTATION_SNAPSHOT_SHA256.txt'
 RESULT='TEMPORAL_REVISABILITY_RESULTS.json'
 
+
 class FrozenBaselineTests(unittest.TestCase):
     def test_snapshot_matches(self):
         expected={}
@@ -18,7 +19,9 @@ class FrozenBaselineTests(unittest.TestCase):
                 d,n=line.split('  ',1); expected[n]=d
         self.assertNotIn('revisable_adaptive_mechanism.py',expected)
         self.assertNotIn('test_temporal_revisability.py',expected)
-        for n,d in expected.items(): self.assertEqual(hashlib.sha256((ROOT/n).read_bytes()).hexdigest(),d,n)
+        for n,d in expected.items():
+            self.assertEqual(hashlib.sha256((ROOT/n).read_bytes()).hexdigest(),d,n)
+
 
 class PreregTests(unittest.TestCase):
     @classmethod
@@ -32,6 +35,7 @@ class PreregTests(unittest.TestCase):
             ['a_tool','fallback_completed']])
     def test_fixed_admissibility(self):
         self.assertEqual(self.spec['admissible_actions'],['a_tool','z_fallback'])
+
 
 class RevisabilityTests(unittest.TestCase):
     def test_conflicting_sequence_is_revisable(self):
@@ -51,12 +55,18 @@ class RevisabilityTests(unittest.TestCase):
         self.assertEqual(q3.scores,(('a_tool',0),('z_fallback',1)))
         self.assertEqual(q3.score_for('a_tool'),0)
         self.assertEqual(q0.score_for('a_tool'),0)
-        self._write({'sequence':[
-            {'t':0,'behavior':b0,'experience':e0,'state':q0.scores},
-            {'t':1,'behavior':b1,'experience':e1,'state':q1.scores},
-            {'t':2,'behavior':b2,'experience':e2,'state':q2.scores},
-            {'t':3,'behavior':mech.choose(A,q3),'state':q3.scores}],
-            'admissibility_constant':True})
+
+    def test_frozen_result_artifact_matches_observed_sequence(self):
+        expected = {
+            'sequence': [
+                {'t':0,'behavior':'a_tool','experience':'attempt_failed','state':[['a_tool',0],['z_fallback',0]]},
+                {'t':1,'behavior':'z_fallback','experience':'attempt_failed','state':[['a_tool',1],['z_fallback',0]]},
+                {'t':2,'behavior':'a_tool','experience':'fallback_completed','state':[['a_tool',1],['z_fallback',1]]},
+                {'t':3,'behavior':'a_tool','state':[['a_tool',0],['z_fallback',1]]},
+            ],
+            'admissibility_constant': True,
+        }
+        self.assertEqual(json.loads((ROOT/RESULT).read_text()), expected)
 
     def test_same_admissibility_different_state_different_behavior(self):
         mech=RevisableMechanism(); A=AdmissibleSpace(('a_tool','z_fallback'),())
@@ -85,8 +95,6 @@ class RevisabilityTests(unittest.TestCase):
         with self.assertRaises(ValueError): q0.update(Experience('a_tool','unknown'))
         self.assertEqual(q0,RevisableState.initial(('a_tool','z_fallback')))
 
-    @staticmethod
-    def _write(data):
-        (ROOT/RESULT).write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
 
-if __name__=='__main__': unittest.main()
+if __name__=='__main__':
+    unittest.main()
