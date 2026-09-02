@@ -1,9 +1,9 @@
 {
-  "experiment": "minimal-phenomenon-probe-v0.1",
+  "experiment": "minimal-phenomenon-probe-v0.2",
   "status": "frozen_assay_plus_trial_contract",
-  "primitive": "I ~ pi(I | X,C,e,B,Theta); Y = A(I,E)",
+  "primitive": "I ~ pi(I | X,C,E_tilde,B,Theta); Y = A(I,E_eval)",
   "task_id": "routing-v0.1",
-  "objective": "Route the token from S to G.",
+  "objective": "Route the token from S to G using the current environment.",
   "contexts": {
     "C0": {
       "role": "neutral_control",
@@ -11,37 +11,51 @@
       "declared_character_count": 135
     },
     "C1": {
-      "role": "matched_non_frame_control",
-      "text": "Route the token from S to G. Check format first; return exactly one JSON object with one field named implementation whose value is an array of node labels.",
-      "declared_character_count": 135
+      "role": "matched_non_frame_semantic_placebo",
+      "text": "The graph uses symbolic node labels. Return exactly one JSON object with one field named implementation whose value is an array of node labels.",
+      "declared_character_count": 143
     }
   },
-  "context_footprint_control": "C0 and C1 have equal UTF-8 character counts in the frozen v0.1 contract. Exact token-count equality is model/tokenizer dependent and must be measured and recorded at execution.",
+  "context_footprint_control": "Character counts are frozen but not treated as token equality. Concrete token counts must be measured and recorded at execution.",
+  "environment_boundary": {
+    "E_tilde": "model-visible current environment state",
+    "E_eval": "exogenous evaluator environment",
+    "e0": "E_tilde=E0 and E_eval=E0",
+    "e1": "E_tilde=E1 and E_eval=E1; the A->B edge is absent from the current graph",
+    "stimulus_requirement": "e0 and e1 must produce different model-visible rendered inputs",
+    "anti_leakage": "the model-visible input exposes the current graph/state but does not contain a textual instruction naming the removed edge or suggesting either valid alternative"
+  },
   "interventions": {
-    "e0": "No environmental change.",
-    "e1": "Exogenous evaluator environment removes A->B; this edge-specific change is NOT disclosed in the model-visible input."
+    "e0": "Baseline environment assignment.",
+    "e1": "Perturbed environment assignment: current graph omits A->B."
   },
   "initial_state_X0": {
     "start": "S",
     "target": "G",
-    "graph_edges": [["S","A"],["A","B"],["B","G"],["S","C"],["C","D"],["D","G"],["S","E"],["E","F"],["F","G"]]
+    "baseline_graph_edges": [["S","A"],["A","B"],["B","G"],["S","C"],["C","D"],["D","G"],["S","E"],["E","F"],["F","G"]]
   },
   "valid_alternatives": [["S","C","D","G"],["S","E","F","G"]],
   "equivalence": "node sequences exactly identical",
   "raw_output_custody": "raw_model_output is primary custody object and is never human-rewritten",
   "raw_input_custody": "rendered_input is preserved exactly; input_hash binds it to the TrialSpec",
   "model_output_schema": {"implementation": "array of node strings only"},
-  "trial_atom": "tau = (X0,C,e,B,Theta,E_spec) -> I -> A(I,E)",
+  "session_control": "fresh_independent_trial; each replication starts without prior conversation history",
+  "trial_atom": "tau = (X0,C,E_tilde,e,B,Theta,E_eval_spec) -> I -> A(I,E_eval)",
   "identity": {
-    "trial_id": "SHA-256(canonical TrialSpec); excludes all outcome fields",
-    "observation_hash": "SHA-256(canonical TrialSpec + raw_model_output + derived evaluation record)"
+    "trial_id": "SHA-256(canonical TrialSpec); excludes outcome fields",
+    "observation_hash": "SHA-256(canonical TrialSpec + raw_model_output + derived evaluation record)",
+    "execution_timestamp": "non-custodial metadata"
   },
   "factorial_design": {
     "cells": [["C0","e0"],["C0","e1"],["C1","e0"],["C1","e1"]],
     "assignment": "deterministic domain-separated SHA-256 seed per cell and replicate, followed by deterministic sort",
-    "balance": "replicates_per_cell is fixed prospectively by the execution manifest",
-    "ordering": "execution order is not an analytical factor; assigned cell and seed are explicit",
-    "master_seed": "prospectively fixed by execution manifest"
+    "replication": "fixed prospectively by execution manifest",
+    "master_seed": "fixed prospectively by execution manifest"
+  },
+  "budget": {
+    "status": "hard contract",
+    "measurement": "actual provider-reported input/output tokens, turns, tool calls, and latency are recorded when available",
+    "violation": "execution exceeding the declared budget is invalid or explicitly flagged; it is not silently normalized"
   },
   "analysis_order": [
     "preserve rendered input and raw output",
@@ -55,5 +69,5 @@
   "secondary_quantity": "distribution-valued context x intervention interaction",
   "secondary_summaries": ["validity rate", "distinct implementation count", "I0 frequency", "Ia frequency", "Ib frequency"],
   "no_inference": ["new capability", "learning", "construction", "representation change", "reasoning improvement", "frame", "mechanism"],
-  "claim_ceiling": "The trial contract makes Layer-0 assignment, input/output custody, evaluator binding, and deterministic factorial allocation auditable. It makes no claim that a context or interaction effect exists."
+  "claim_ceiling": "The frozen assay plus trial contract defines an observable environment stimulus and auditable four-cell execution. It makes no claim that a context effect exists."
 }
