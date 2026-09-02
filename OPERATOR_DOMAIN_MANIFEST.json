@@ -1,0 +1,24 @@
+{
+  "manifest": "CRANK_RLO_OPERATOR_DOMAIN_v0.1",
+  "classes": ["k_M", "k_A", "k_F", "k_L"],
+  "loci": ["M", "A", "F", "L"],
+  "operator_hypothesis_count": 256,
+  "one_entry_revision_neighborhood_count": 13,
+  "operator_equivalence_domain": "all bounded canonical transitions generated from the declared finite state, input, and consequence domains",
+  "initial_operator": {
+    "k_M": "M",
+    "k_A": "M",
+    "k_F": "M",
+    "k_L": "M"
+  },
+  "intended_revision": {
+    "k_M": "M",
+    "k_A": "M",
+    "k_F": "F",
+    "k_L": "M"
+  },
+  "enumeration_order": {
+    "loci": ["M", "A", "F", "L"],
+    "keys": ["k_M", "k_A", "k_F", "k_L"]
+  }
+}
