@@ -9,7 +9,9 @@ Identity rules:
     trial_id = H(canonical TrialSpec)
     observation_hash = H(canonical TrialSpec + raw output + evaluation record)
 
-The trial identifier is therefore outcome-independent.
+The environmental intervention is deliberately NOT included in the
+model-visible prompt: e1 is an exogenous contract change, not a cue naming the
+removed edge or suggesting an alternative path.
 """
 
 from __future__ import annotations
@@ -114,7 +116,7 @@ class TrialSpec:
         return sha256_hex(self.canonical_json())
 
     def rendered_input(self) -> str:
-        """Deterministic model-visible input; no outcome fields are included."""
+        """Deterministic model-visible input; excludes outcome and e-specific cues."""
         payload = {
             "task": {
                 "task_id": self.task.task_id,
@@ -126,7 +128,6 @@ class TrialSpec:
                 },
             },
             "context": self.context.text,
-            "intervention": self.intervention.description,
             "response_schema": self.evaluator.parser_schema,
         }
         return canonical_json(payload)
@@ -141,6 +142,7 @@ class TrialObservation:
     trial_id: str
     model_identifier: str
     execution_timestamp: str
+    rendered_input: str
     raw_model_output: str
     parsed_implementation: Optional[Tuple[str, ...]]
     contract_result: Optional[bool]
@@ -206,6 +208,7 @@ def make_observation(
         trial_id=spec.trial_id(),
         model_identifier=spec.model_config.model_identifier,
         execution_timestamp=execution_timestamp,
+        rendered_input=spec.rendered_input(),
         raw_model_output=raw_model_output,
         parsed_implementation=(parsed.node_sequence if parsed is not None else None),
         contract_result=(result.contract_result if result is not None else None),
@@ -257,16 +260,16 @@ def make_intervention(intervention_id: str) -> InterventionSpec:
     if intervention_id == "e1":
         return InterventionSpec(
             intervention_id="e1",
-            description="The routing environment has changed; the A-to-B transition is unavailable.",
+            description="Environmental condition differs from baseline; evaluator applies the frozen perturbation.",
             environment_id="E_1",
             changed_edges=(("A", "B"),),
         )
     raise ValueError(f"unknown intervention: {intervention_id}")
 
 
-# The v0.1 contexts are deliberately equal in character footprint. Exact token
-# equality remains model/tokenizer dependent and is recorded separately by an
-# execution harness once a concrete model interface is selected.
+# Equal character footprint is enforced for v0.1. Exact token equality remains
+# tokenizer/model dependent and must be measured by the concrete execution
+# harness before empirical runs.
 CONTEXTS: Mapping[str, ContextSpec] = {
     "C0": ContextSpec(
         context_id="C0",
@@ -318,3 +321,37 @@ def build_trial(
         evaluator=make_default_evaluator(intervention_id),
         assignment_seed=assignment_seed,
     )
+
+
+def derive_assignment_seed(master_seed: int, cell: Tuple[str, str], replicate_index: int) -> int:
+    """Domain-separated deterministic seed; no mutable global RNG state."""
+    material = f"crank-layer0-assignment-v0.1|{master_seed}|{cell[0]}|{cell[1]}|{replicate_index}"
+    return int(sha256_hex(material)[:16], 16)
+
+
+def build_factorial_assignment(
+    *,
+    master_seed: int,
+    replicates_per_cell: int,
+    model_config: ModelConfig,
+    budget: ResourceBudget,
+) -> Tuple[TrialSpec, ...]:
+    """Return a deterministic, balanced four-cell assignment schedule."""
+    if replicates_per_cell < 1:
+        raise ValueError("replicates_per_cell must be >= 1")
+    cells = (("C0", "e0"), ("C0", "e1"), ("C1", "e0"), ("C1", "e1"))
+    specs = []
+    for cell in cells:
+        for replicate_index in range(replicates_per_cell):
+            specs.append(
+                build_trial(
+                    context_id=cell[0],
+                    intervention_id=cell[1],
+                    assignment_seed=derive_assignment_seed(master_seed, cell, replicate_index),
+                    model_config=model_config,
+                    budget=budget,
+                )
+            )
+
+    # Deterministic ordering based on the assigned atom, not on model output.
+    return tuple(sorted(specs, key=lambda spec: (spec.assignment_seed, spec.trial_id())))
