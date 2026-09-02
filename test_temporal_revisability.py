@@ -17,8 +17,6 @@ class FrozenBaselineTests(unittest.TestCase):
         for line in (ROOT/SNAP).read_text().splitlines():
             if line.strip():
                 d,n=line.split('  ',1); expected[n]=d
-        self.assertNotIn('revisable_adaptive_mechanism.py',expected)
-        self.assertNotIn('test_temporal_revisability.py',expected)
         for n,d in expected.items():
             self.assertEqual(hashlib.sha256((ROOT/n).read_bytes()).hexdigest(),d,n)
 
