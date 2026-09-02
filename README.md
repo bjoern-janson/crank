@@ -99,6 +99,72 @@ Raw observations are never rewritten. Derived analyses consume the recorded
 observations; they do not change their custody objects. Layer-0 results must be
 frozen before being supplied to downstream CRANK components.
 
+## Possible, licensed, and realized transitions
+
+CRANK distinguishes three relations that must not be inferred from one
+another merely from observed behavior:
+
+```text
+G_possible  -> transitions available from the current environment/task
+G_auth      -> transitions admissible under the applicable authority/constraints
+G_realized  -> transitions actually selected/executed by the downstream system
+```
+
+As an organizing decomposition:
+
+```math
+G_realized subseteq G_possible ∩ G_auth
+```
+
+subject to the current state and other execution conditions. An observed
+increase in realized behavior therefore does not by itself establish a change
+in capability, possible transitions, or authorization. In particular,
+behavioral revision can occur while authorization remains fixed.
+
+The current `AuthorityAdapter` is a restricted projection of this richer
+conditional authorization relation: `CorrectiveState -> constraint keys ->
+AdmissibleSpace`. It is not a general-purpose governance engine.
+
+The corresponding governance abstraction is:
+
+```math
+G_auth subseteq S × C × A × S
+```
+
+where an authorization licenses a scoped transition only under specified
+conditions. The abstraction is descriptive of the existing seams; it does not
+add a new subsystem.
+
+The current corrigibility interpretation is likewise descriptive:
+
+```math
+G_auth^t -> G_auth^(t+1)
+```
+
+where a warranted correction may revise previously admissible transitions
+while retaining provenance for the revision. This should not be conflated
+with temporal experience state, which can change action selection while the
+authorization relation remains constant.
+
+The organizing primitives are:
+
+```text
+Governance:
+  control over the conditional admissibility of transitions.
+
+Corrigibility:
+  revisable transition authorization with persistent provenance.
+```
+
+A core anti-credit-leakage invariant is therefore:
+
+```text
+produced(x) does not imply authorized(x -> y)
+```
+
+and, more generally, no transition should acquire binding force merely because
+the process that produced its input also claims authority over that transition.
+
 ## Full causal stack
 
 ```text
