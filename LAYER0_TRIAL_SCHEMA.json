@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bjoern-janson/crank/blob/main/LAYER0_TRIAL_SCHEMA.json",
+  "title": "CRANK Layer-0 trial custody schema",
+  "type": "object",
+  "required": ["trial_spec", "observation"],
+  "properties": {
+    "trial_spec": {
+      "type": "object",
+      "required": ["schema_version", "task", "context", "intervention", "budget", "model_config", "evaluator", "assignment_seed"],
+      "properties": {
+        "schema_version": {"const": "crank-trial-v0.1"},
+        "task": {"type": "object"},
+        "context": {"type": "object"},
+        "intervention": {"type": "object"},
+        "budget": {"type": "object"},
+        "model_config": {"type": "object"},
+        "evaluator": {"type": "object"},
+        "assignment_seed": {"type": "integer"}
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": ["trial_id", "model_identifier", "execution_timestamp", "rendered_input", "raw_model_output", "parsed_implementation", "contract_result", "evaluation_environment_id", "input_hash", "observation_hash"],
+      "properties": {
+        "trial_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "model_identifier": {"type": "string"},
+        "execution_timestamp": {"type": "string"},
+        "rendered_input": {"type": "string"},
+        "raw_model_output": {"type": "string"},
+        "parsed_implementation": {"type": ["array", "null"], "items": {"type": "string"}},
+        "contract_result": {"type": ["boolean", "null"]},
+        "evaluation_environment_id": {"type": ["string", "null"]},
+        "input_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "observation_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
