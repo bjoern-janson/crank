@@ -1,0 +1,9 @@
+{
+  "admissibility_constant": true,
+  "sequence": [
+    {"behavior":"a_tool","experience":"attempt_failed","state":[["a_tool",0],["z_fallback",0]],"t":0},
+    {"behavior":"z_fallback","experience":"attempt_failed","state":[["a_tool",1],["z_fallback",0]],"t":1},
+    {"behavior":"a_tool","experience":"fallback_completed","state":[["a_tool",1],["z_fallback",1]],"t":2},
+    {"behavior":"a_tool","state":[["a_tool",0],["z_fallback",1]],"t":3}
+  ]
+}
