@@ -1,0 +1,42 @@
+{
+  "experiment": "crank-layer0-trial-contract-v0.1",
+  "status": "frozen_trial_contract",
+  "purpose": "Define the causal experimental atom surrounding the frozen Layer-0 phenomenon probe.",
+  "trial_atom": "tau = (X0, C, e, B, Theta, E_spec) -> I -> A(I,E)",
+  "identity": {
+    "trial_id": "SHA-256(canonical TrialSpec); outcome-independent",
+    "observation_hash": "SHA-256(canonical TrialSpec + raw_model_output + derived evaluation record)"
+  },
+  "custody": {
+    "raw_model_output": "primary outcome custody object; never human-rewritten",
+    "rendered_input": "exact model-visible serialized input",
+    "input_hash": "SHA-256(rendered_input)",
+    "model_metadata": ["provider", "model_identifier", "model_version", "system_instructions", "decoding", "tool_settings", "reasoning_settings"],
+    "execution_metadata": ["execution_timestamp"]
+  },
+  "factors": {
+    "contexts": ["C0", "C1"],
+    "interventions": ["e0", "e1"],
+    "cells": [["C0","e0"],["C0","e1"],["C1","e0"],["C1","e1"]]
+  },
+  "controls": {
+    "assignment": "deterministic seed recorded in TrialSpec",
+    "ordering": "trial records may be executed in arbitrary order; cell identity is explicit",
+    "replication": "set prospectively by execution manifest; not inferred from observed output",
+    "task_state": "fixed routing-v0.1 X0",
+    "evaluator": "fixed exogenous evaluator specification bound into TrialSpec",
+    "budget": "explicit ResourceBudget bound into TrialSpec"
+  },
+  "negative_controls": {
+    "C1": "matched non-frame control for v0.1; no mechanism hypothesis, exemplar, or alternative-path information",
+    "future": "placebo/salience control is reserved for a later preregistered extension and does not alter this baseline"
+  },
+  "analysis_boundary": {
+    "raw": "immutable observation records",
+    "derived": "parser/evaluator results and distribution estimates are derived after raw capture",
+    "primary": "empirical implementation distributions by cell",
+    "secondary": "distribution-valued context-by-intervention interaction and descriptive validity/implementation frequencies",
+    "forbidden": ["post-hoc context rewriting", "human correction of implementations", "outcome-dependent trial identity", "changing evaluator after data inspection"]
+  },
+  "claim_ceiling": "This artifact establishes an auditable experimental unit and assignment/custody semantics; it makes no claim that the Layer-0 phenomenon exists."
+}
