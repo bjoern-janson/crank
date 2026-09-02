@@ -17,15 +17,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
-from phenomenon_probe import (
-    ProbeEnvironment,
-    ParsedImplementation,
-    EvaluationResult,
-    evaluate,
-)
-
+from phenomenon_probe import ProbeEnvironment, ParsedImplementation, EvaluationResult, evaluate
 
 SCHEMA_VERSION = "crank-trial-v0.1"
 
@@ -33,7 +27,6 @@ SCHEMA_VERSION = "crank-trial-v0.1"
 @dataclass(frozen=True)
 class ResourceBudget:
     """Predeclared execution budget; values are metadata, not outcomes."""
-
     max_input_tokens: int
     max_output_tokens: int
     max_turns: int
@@ -45,7 +38,6 @@ class ResourceBudget:
 @dataclass(frozen=True)
 class ModelConfig:
     """Model/interface configuration fields that can affect response policy."""
-
     provider: str
     model_identifier: str
     model_version: str
@@ -58,7 +50,6 @@ class ModelConfig:
 @dataclass(frozen=True)
 class TaskState:
     """First-class custody object for the model-visible initial task state."""
-
     task_id: str
     initial_node: str
     target_node: str
@@ -68,7 +59,6 @@ class TaskState:
 @dataclass(frozen=True)
 class ContextSpec:
     """Exact context intervention, represented as a custody object."""
-
     context_id: str
     text: str
     role: str
@@ -96,7 +86,6 @@ class EvaluatorSpec:
 @dataclass(frozen=True)
 class TrialSpec:
     """Complete assigned experimental atom, frozen before model execution."""
-
     schema_version: str
     task: TaskState
     context: ContextSpec
@@ -149,7 +138,6 @@ class TrialSpec:
 @dataclass(frozen=True)
 class TrialObservation:
     """Immutable observation with raw model output as primary custody object."""
-
     trial_id: str
     model_identifier: str
     execution_timestamp: str
@@ -159,7 +147,6 @@ class TrialObservation:
     evaluation_environment_id: Optional[str]
     input_hash: str
     observation_hash: str
-
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -190,7 +177,6 @@ def make_observation(
 ) -> TrialObservation:
     """Capture raw output first, then derive parser/evaluator results."""
     environment = ProbeEnvironment(spec.intervention.environment_id, spec.evaluator.environment_edges)
-
     parsed: Optional[ParsedImplementation]
     result: Optional[EvaluationResult]
     try:
@@ -215,7 +201,6 @@ def make_observation(
         "raw_model_output": raw_model_output,
         "evaluation": evaluation_payload,
     }
-    observation_hash = sha256_hex(canonical_json(observation_payload))
 
     return TrialObservation(
         trial_id=spec.trial_id(),
@@ -226,7 +211,7 @@ def make_observation(
         contract_result=(result.contract_result if result is not None else None),
         evaluation_environment_id=(result.environment_id if result is not None else None),
         input_hash=spec.input_hash(),
-        observation_hash=observation_hash,
+        observation_hash=sha256_hex(canonical_json(observation_payload)),
     )
 
 
@@ -244,13 +229,13 @@ def make_default_task() -> TaskState:
 
 
 def make_default_evaluator(intervention_id: str) -> EvaluatorSpec:
+    task = make_default_task()
     if intervention_id == "e0":
-        edges = make_default_task().graph_edges
+        edges = task.graph_edges
     elif intervention_id == "e1":
-        edges = tuple(edge for edge in make_default_task().graph_edges if edge != ("A", "B"))
+        edges = tuple(edge for edge in task.graph_edges if edge != ("A", "B"))
     else:
         raise ValueError(f"unknown intervention: {intervention_id}")
-
     return EvaluatorSpec(
         evaluator_id="routing-exogenous-path-evaluator",
         version="0.1",
@@ -279,28 +264,28 @@ def make_intervention(intervention_id: str) -> InterventionSpec:
     raise ValueError(f"unknown intervention: {intervention_id}")
 
 
+# The v0.1 contexts are deliberately equal in character footprint. Exact token
+# equality remains model/tokenizer dependent and is recorded separately by an
+# execution harness once a concrete model interface is selected.
 CONTEXTS: Mapping[str, ContextSpec] = {
     "C0": ContextSpec(
         context_id="C0",
         role="neutral_control",
         text=(
-            "Solve the routing task using the stated task state and environmental "
-            "constraints. Return exactly one JSON object with one field named "
-            "implementation whose value is an array of node labels."
+            "Route the token from S to G. Return exactly one JSON object with one "
+            "field named implementation whose value is an array of node labels."
         ),
-        declared_length_chars=206,
+        declared_length_chars=135,
     ),
     "C1": ContextSpec(
         context_id="C1",
         role="matched_non_frame_control",
         text=(
-            "Solve the routing task using the stated task state and environmental "
-            "constraints. Inspect the instructions carefully, keep the requested "
-            "output format unchanged, and verify the sequence before returning. "
-            "Return exactly one JSON object with one field named implementation "
-            "whose value is an array of node labels."
+            "Route the token from S to G. Check format first; return exactly one "
+            "JSON object with one field named implementation whose value is an "
+            "array of node labels."
         ),
-        declared_length_chars=206,
+        declared_length_chars=135,
     ),
 }
 
