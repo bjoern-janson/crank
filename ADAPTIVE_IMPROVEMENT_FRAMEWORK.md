@@ -108,7 +108,7 @@ G_{realized}
 \xrightarrow{controlled\ evaluation}
 \Delta \mathcal R_{validated}
 \xrightarrow{causal\ controls}
-\operatorname{Cause}(\Delta \mathcal R)
+Cause(\Delta \mathcal R)
 }
 ```
 
@@ -116,11 +116,11 @@ and finally by preservation of corrective access:
 
 ```math
 \boxed{
-\operatorname{Cause}(\Delta\mathcal R)
+Cause(\Delta\mathcal R)
 \land
-\operatorname{CorrAccess}_{t+1}
+CorrAccess_{t+1}
 \rightarrow
-\operatorname{Admit}_{CRANK}
+Admit_{CRANK}
 }
 ```
 
@@ -323,8 +323,7 @@ A candidate result therefore requires a causal control structure capable of
 supporting:
 
 ```math
-\operatorname{Cause}(\Delta\mathcal R,
-\text{feedback-conditioned revision})
+Cause(\Delta\mathcal R,\text{feedback-conditioned revision})
 ```
 
 rather than merely:
@@ -345,7 +344,7 @@ longer accept warranted correction afterward.
 The future framework therefore requires preserved corrective access:
 
 ```math
-\operatorname{CorrAccess}_{t+1}
+CorrAccess_{t+1}
 ```
 
 meaning that the post-revision system remains reachable through the intended
@@ -420,14 +419,13 @@ proof that the corresponding outcome is globally impossible.
 For a future result, a useful conceptual admission predicate is:
 
 ```math
-\operatorname{Admit}_{CRANK}
+Admit_{CRANK}
 =
 \Delta\mathcal R_{validated}
 \land
-\operatorname{Cause}(\Delta\mathcal R,
-\text{feedback-conditioned revision})
+Cause(\Delta\mathcal R,\text{feedback-conditioned revision})
 \land
-\operatorname{CorrAccess}_{t+1}
+CorrAccess_{t+1}
 ```
 
 The notation means that all three burdens must be met:
