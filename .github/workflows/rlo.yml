@@ -1,0 +1,22 @@
+name: CRANK recursive learning operator
+
+on:
+  push:
+    branches: [recursive-learning-operator-v0.1]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rlo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run isolated RLO unit tests
+        run: python -m unittest test_recursive_learning_operator -v
+      - name: Execute pre-gated RLO assay
+        run: python run_recursive_learning_operator.py
+      - name: Verify result artifact exists
+        run: test -s RLO_EXECUTION_RESULTS.json
