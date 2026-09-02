@@ -1,0 +1,87 @@
+{
+  "experiment": "crank-del-v0.1",
+  "status": "preregistered",
+  "question": "Can experience cause a learner to acquire the specific executable distinction required to expand its future constructive repertoire?",
+  "primary_intervention": "PermitDistinctionUpdate",
+  "branches": {
+    "control": "0",
+    "treatment": "1",
+    "wrong_distinction": "matched_candidate_delta_position"
+  },
+  "initial_frame": {
+    "frame_id": "crank-del-f0-v1",
+    "allowed_operations": ["identity", "reverse", "sort_asc"],
+    "max_program_length": 1,
+    "hypothesis_count": 4,
+    "base_procedure": ["reverse"]
+  },
+  "candidate_distinctions": {
+    "VALUE_IS_EVEN": {
+      "canonical_semantics": "select every element x for which x mod 2 == 0",
+      "frame_update": ["add", "keep_even"],
+      "resulting_hypothesis_count": 5
+    },
+    "POSITION_IS_EVEN": {
+      "canonical_semantics": "select every element at one-based position i for which i mod 2 == 0",
+      "frame_update": ["add", "drop_first"],
+      "resulting_hypothesis_count": 5,
+      "note": "drop_first is the declared executable proxy for the matched positional control in this v0.1 assay; the positional semantic is fixed by the evaluator rather than inferred from the operation name."
+    }
+  },
+  "common_evidence": {
+    "curriculum": [
+      {"id": "h1", "input": [3, 1, 2], "expected": [1, 2, 3]},
+      {"id": "h2", "input": [8, 5, 7], "expected": [5, 7, 8]}
+    ],
+    "diagnostic_failure": {"input": [1, 2, 3, 4], "expected": [2, 4], "ambiguity": ["VALUE_IS_EVEN", "POSITION_IS_EVEN"]},
+    "discriminating_task": {
+      "input": [2, 1, 4, 3],
+      "expected": [2, 4],
+      "predictions": {
+        "VALUE_IS_EVEN": [2, 4],
+        "POSITION_IS_EVEN": [1, 3]
+      }
+    }
+  },
+  "chronology": [
+    "freeze F0 and A0",
+    "present identical curriculum H",
+    "present identical diagnostic failure d",
+    "permit treatment to nominate a candidate distinction",
+    "apply fixed discriminating experience",
+    "retain only empirically supported distinction",
+    "induce A1 inside retained frame",
+    "freeze F1 and A1",
+    "generate held-out family T* independently",
+    "evaluate A0[H] and A1 under identical Theta, B, and E_eval",
+    "issue exhaustive old-space exclusion certificate",
+    "compute delta_R_plus and delta_R_minus"
+  ],
+  "same_evidence_invariant": ["H", "diagnostic_failure", "discriminating_task", "Theta", "B", "E_eval"],
+  "heldout_generation": {
+    "after_induction": true,
+    "independent_of_inducer": true,
+    "independent_seed": "crank-del-heldout-v0.1",
+    "task_family": "length-5 sequences containing mixed parity with no fixed positional/parity correlation",
+    "reject_accidental_agreement": true
+  },
+  "measurements": [
+    "frame_id",
+    "hypothesis_space_id",
+    "procedure_id",
+    "trace_id",
+    "R0",
+    "R1",
+    "delta_R_plus",
+    "delta_R_minus",
+    "old_space_exclusion_certificate"
+  ],
+  "primary_success": "delta_R_plus_nonempty",
+  "distinction_success": "retained distinction is VALUE_IS_EVEN and POSITION_IS_EVEN is rejected",
+  "claim_ceiling": "At most, this assay can establish evidence-conditioned acquisition of a specific declared distinction, executable frame expansion, procedural change, and held-out Reach expansion under the frozen contract. It does not establish unrestricted algorithm learning, general intelligence, or intrinsic capability expansion.",
+  "semantic_freeze": {
+    "VALUE_IS_EVEN": "value parity is evaluated on the element value itself",
+    "POSITION_IS_EVEN": "position parity is evaluated using one-based sequence index; position 1 is odd and position 2 is even",
+    "no_zero_based_position_semantics": true
+  }
+}
