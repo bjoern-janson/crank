@@ -174,6 +174,16 @@ def update(state,locus,batch,evaluator):
 def operator_id(op): return digest([[k,v] for k,v in op])
 
 
+def enumerate_operators():
+    """Exhaust the declared 4^4 finite operator domain in canonical order."""
+    return tuple(tuple(zip(KEYS, loci)) for loci in product(LOCI, repeat=len(KEYS)))
+
+
+def equivalent(left, right):
+    """Exact extensional equality over the declared finite operator key domain."""
+    return all(dict(left).get(key) == dict(right).get(key) for key in KEYS)
+
+
 def one_entry_revisions(op):
     base=dict(op); out=[op]
     for key in KEYS:
