@@ -4,7 +4,6 @@ from corrigible_buffer_v1 import ReceiptAuthority
 from observation_receipt_bridge import ExogenousEvaluator
 from phenomenon_probe import (
     BASELINE_EDGES,
-    OBJECTIVE,
     PERTURBED_REMOVAL,
     ParsedImplementation,
     ProbeEnvironment,
@@ -13,6 +12,7 @@ from phenomenon_probe import (
     summarize_distribution,
     validate_probe_contract,
 )
+from trial_contract import ExecutionUsage
 
 
 class IdentificationTests(unittest.TestCase):
@@ -55,10 +55,19 @@ class CustodyTests(unittest.TestCase):
 
 
 class EvidenceBridgeTests(unittest.TestCase):
+    def _observation(self, raw):
+        return observe(
+            context_id="C0",
+            intervention_id="e1",
+            task_id="routing-v0.1",
+            raw_model_output=raw,
+            environment=ProbeEnvironment.perturbed(),
+        )
+
     def test_validated_output_can_become_buffer_compatible_receipt(self):
         raw = '{"implementation":["S","C","D","G"]}'
-        obs = observe(context_id="C0", intervention_id="e1", task_id="routing-v0.1", raw_model_output=raw, environment=ProbeEnvironment.perturbed())
-        evaluator = ExogenousEvaluator()
+        obs = self._observation(raw)
+        evaluator = ExogenousEvaluator(ProbeEnvironment.perturbed())
         validated = evaluator.validate("obs-r1", obs)
         authority = ReceiptAuthority()
         receipt = evaluator.to_buffer_receipt(validated, authority, "c1")
@@ -67,15 +76,34 @@ class EvidenceBridgeTests(unittest.TestCase):
         self.assertEqual(receipt.output_summary, raw)
 
     def test_invalid_external_evaluation_cannot_become_receipt(self):
-        obs = observe(context_id="C0", intervention_id="e1", task_id="routing-v0.1", raw_model_output='{"implementation":["S","A","B","G"]}', environment=ProbeEnvironment.perturbed())
+        obs = self._observation('{"implementation":["S","A","B","G"]}')
         self.assertFalse(obs.evaluation.contract_result)
         with self.assertRaises(ValueError):
-            ExogenousEvaluator().validate("obs-r2", obs)
+            ExogenousEvaluator(ProbeEnvironment.perturbed()).validate("obs-r2", obs)
+
+    def test_recomputation_ignores_forged_success_fields(self):
+        obs = self._observation('{"implementation":["S","A","B","G"]}')
+        forged = type(obs)(
+            context_id=obs.context_id,
+            intervention_id=obs.intervention_id,
+            task_id=obs.task_id,
+            raw_model_output=obs.raw_model_output,
+            parsed_implementation=ParsedImplementation(("S", "C", "D", "G")),
+            evaluation=type("ForgedEval", (), {
+                "task_id": obs.task_id,
+                "environment_id": "E_1",
+                "implementation": ParsedImplementation(("S", "C", "D", "G")),
+                "contract_result": True,
+                "objective": "forged",
+            })(),
+        )
+        with self.assertRaises(ValueError):
+            ExogenousEvaluator(ProbeEnvironment.perturbed()).validate("obs-r-forged", forged)
 
     def test_second_evaluator_cannot_substitute_for_first(self):
-        obs = observe(context_id="C0", intervention_id="e1", task_id="routing-v0.1", raw_model_output='{"implementation":["S","C","D","G"]}', environment=ProbeEnvironment.perturbed())
-        evaluator_a = ExogenousEvaluator()
-        evaluator_b = ExogenousEvaluator()
+        obs = self._observation('{"implementation":["S","C","D","G"]}')
+        evaluator_a = ExogenousEvaluator(ProbeEnvironment.perturbed())
+        evaluator_b = ExogenousEvaluator(ProbeEnvironment.perturbed())
         validated = evaluator_a.validate("obs-r3", obs)
         authority = ReceiptAuthority()
         with self.assertRaises(ValueError):
