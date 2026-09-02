@@ -36,6 +36,7 @@ class TrialContractTests(unittest.TestCase):
             latency_limit_ms=30000,
             sampling={"n": 1, "seed": "external-assignment"},
         )
+        self.usage = ExecutionUsage(100, 20, 1, 0, 1000)
 
     def test_contexts_are_first_class_and_not_procedural(self):
         c0 = context_spec("C0")
@@ -94,22 +95,30 @@ class TrialContractTests(unittest.TestCase):
         a = build_trial(context_id="C0", intervention_id="e0", assignment_seed=77, model_config=self.model, budget=self.budget)
         b = build_trial(context_id="C0", intervention_id="e0", assignment_seed=78, model_config=self.model, budget=self.budget)
         self.assertNotEqual(a.trial_id(), b.trial_id())
-        good = make_observation(a, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:00:00Z")
-        bad = make_observation(a, raw_model_output='{"implementation":["S","C","D","G"]}', execution_timestamp="2026-01-01T00:00:00Z")
+        good = make_observation(a, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:00:00Z", execution_usage=self.usage)
+        bad = make_observation(a, raw_model_output='{"implementation":["S","C","D","G"]}', execution_timestamp="2026-01-01T00:00:00Z", execution_usage=self.usage)
         self.assertEqual(good.trial_id, bad.trial_id)
         self.assertNotEqual(good.observation_hash, bad.observation_hash)
 
+    def test_execution_usage_is_custodied_and_hash_bound(self):
+        trial = build_trial(context_id="C1", intervention_id="e0", assignment_seed=8, model_config=self.model, budget=self.budget)
+        a = make_observation(trial, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:00:00Z", execution_usage=self.usage)
+        self.assertEqual(a.execution_usage, self.usage)
+        altered = ExecutionUsage(101, 20, 1, 0, 1000)
+        b = make_observation(trial, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:00:00Z", execution_usage=altered)
+        self.assertNotEqual(a.observation_hash, b.observation_hash)
+
     def test_execution_timestamp_is_metadata_only_for_observation_identity(self):
         trial = build_trial(context_id="C1", intervention_id="e0", assignment_seed=8, model_config=self.model, budget=self.budget)
-        a = make_observation(trial, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:00:00Z")
-        b = make_observation(trial, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:01:00Z")
+        a = make_observation(trial, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:00:00Z", execution_usage=self.usage)
+        b = make_observation(trial, raw_model_output='{"implementation":["S","A","B","G"]}', execution_timestamp="2026-01-01T00:01:00Z", execution_usage=self.usage)
         self.assertEqual(a.observation_hash, b.observation_hash)
         self.assertNotEqual(a.execution_timestamp, b.execution_timestamp)
 
     def test_raw_output_is_preserved_verbatim(self):
         trial = build_trial(context_id="C1", intervention_id="e0", assignment_seed=8, model_config=self.model, budget=self.budget)
         raw = '{"implementation":["S","A","B","G"]}\n'
-        observation = make_observation(trial, raw_model_output=raw, execution_timestamp="2026-01-01T00:00:00Z")
+        observation = make_observation(trial, raw_model_output=raw, execution_timestamp="2026-01-01T00:00:00Z", execution_usage=self.usage)
         self.assertEqual(observation.raw_model_output, raw)
         self.assertEqual(observation.rendered_input, trial.rendered_input())
         self.assertEqual(observation.parsed_implementation, ("S", "A", "B", "G"))
@@ -119,10 +128,20 @@ class TrialContractTests(unittest.TestCase):
     def test_parse_or_evaluation_failure_does_not_rewrite_raw_observation(self):
         trial = build_trial(context_id="C0", intervention_id="e0", assignment_seed=9, model_config=self.model, budget=self.budget)
         raw = "not-json"
-        observation = make_observation(trial, raw_model_output=raw, execution_timestamp="2026-01-01T00:00:00Z")
+        observation = make_observation(trial, raw_model_output=raw, execution_timestamp="2026-01-01T00:00:00Z", execution_usage=self.usage)
         self.assertEqual(observation.raw_model_output, raw)
         self.assertIsNone(observation.parsed_implementation)
         self.assertIsNone(observation.contract_result)
+
+    def test_over_budget_execution_cannot_become_observation(self):
+        trial = build_trial(context_id="C0", intervention_id="e0", assignment_seed=10, model_config=self.model, budget=self.budget)
+        with self.assertRaises(ValueError):
+            make_observation(
+                trial,
+                raw_model_output='{"implementation":["S","A","B","G"]}',
+                execution_timestamp="2026-01-01T00:00:00Z",
+                execution_usage=ExecutionUsage(513, 20, 1, 0, 1000),
+            )
 
     def test_fresh_session_policy_is_explicit(self):
         self.assertEqual(self.model.session_policy, "fresh_independent_trial")
