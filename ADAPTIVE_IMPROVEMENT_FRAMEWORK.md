@@ -274,6 +274,52 @@ This preserves the existing causal separation. A mechanism may respond to an
 admissible-space change, but the mechanism is not credited for authorizing the
 change merely because it acts after it.
 
+### 6.1 Authorization-revision independence
+
+The present framework specifies an exogenous evidentiary path for authorization
+revision, but does not yet experimentally establish authorization-revision
+independence.
+
+In particular, it does not yet establish that the mechanism undergoing revision
+cannot participate in determining whether the evidence constitutes sufficient
+warrant for revising its own authorization. Participation is not the forbidden
+condition by itself; the relevant burden is whether the revision subject can
+**unilaterally determine** or **solely adjudicate** the sufficiency of the warrant
+that makes its own authorization update authoritative.
+
+This is a prospective experimental burden, not a claim about the current
+implementation.
+
+The important distinction is therefore:
+
+```math
+\boxed{
+\text{evidence generation}
+\neq
+\text{warrant adjudication}
+\neq
+\text{authorized revision}
+}
+```
+
+These authority relations need not be implemented by different software
+components. Shared infrastructure does not by itself violate the condition.
+The relevant question is whether the subject of authorization revision can
+unilaterally control the warrant or adjudication that makes its own revision
+binding.
+
+For the prospective assay, the burden can be stated without prematurely fixing
+a particular architecture:
+
+```text
+the subject of revision cannot be the sole source of warrant
+for its own revision
+```
+
+No specific `A_rev`, external adjudicator, quorum, constitutional rule, or other
+revision subsystem is assumed here. The future experiment must establish the
+minimal authority structure sufficient to satisfy the burden.
+
 ## 7. Future reach must be tested prospectively
 
 A future experiment should define a held-out task family or other controlled
