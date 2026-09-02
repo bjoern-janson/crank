@@ -1,5 +1,5 @@
 {
-  "experiment": "minimal-phenomenon-probe-v0.1",
+  "experiment": "minimal-phenomenon-probe-v0.2",
   "status": "template_only_no_observations",
   "master_seed": 20260902,
   "replicates_per_cell": 16,
@@ -11,7 +11,8 @@
     "system_instructions": "REPLACE_AT_EXECUTION",
     "decoding": {},
     "tool_settings": {},
-    "reasoning_settings": {}
+    "reasoning_settings": {},
+    "session_policy": "fresh_independent_trial"
   },
   "resource_budget": {
     "max_input_tokens": 512,
@@ -23,11 +24,15 @@
   },
   "execution_rules": {
     "assignment": "use build_factorial_assignment(); never assign from model output",
+    "model_visible_environment": "render current environment state from the assigned intervention; e1 must omit A->B from the visible graph",
+    "intervention_text": "do not expose edge-specific intervention descriptions, changed-edge labels, or alternative solutions in the model-visible input",
     "raw_input": "preserve exact rendered_input",
     "raw_output": "preserve exact provider-returned text; never human-rewrite",
+    "session": "start a fresh independent conversation/session for every trial; no prior trial history",
+    "budget": "treat ResourceBudget limits as hard execution constraints; record measured usage",
     "timestamp": "record execution timestamp at capture",
     "token_accounting": "record provider/model tokenizer counts when available; do not substitute character counts",
     "analysis": "do not modify this manifest after observations begin"
   },
-  "note": "This file is a pre-execution template. Replace only REPLACE_AT_EXECUTION metadata before generating trial records; freeze the completed manifest before model execution."
+  "note": "This file is a pre-execution template. Replace only execution metadata before generating trial records; freeze the completed manifest before model execution."
 }
